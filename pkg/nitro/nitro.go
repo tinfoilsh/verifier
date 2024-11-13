@@ -9,7 +9,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 	"github.com/veraison/go-cose"
 
-	"github.com/tinfoilanalytics/e2ev/pkg/models"
+	"github.com/tinfoilanalytics/verifier/pkg/models"
 )
 
 // https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip

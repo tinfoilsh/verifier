@@ -9,7 +9,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
-	"github.com/tinfoilanalytics/e2ev/pkg/models"
+	"github.com/tinfoilanalytics/verifier/pkg/models"
 )
 
 const (
