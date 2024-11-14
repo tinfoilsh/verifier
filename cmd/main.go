@@ -12,8 +12,10 @@ import (
 	"github.com/tinfoilanalytics/verifier/pkg/sigstore"
 )
 
+const repo = "tinfoilanalytics/nitro-enclave-pipeline-test"
+
 func gitHubAttestation(digest string) ([]byte, error) {
-	bundleResponse, err := http.Get("https://api.github.com/repos/tinfoilanalytics/nitro-enclave-pipeline-test/attestations/sha256:" + digest)
+	bundleResponse, err := http.Get("https://api.github.com/repos/" + repo + "/attestations/sha256:" + digest)
 	if err != nil {
 		return nil, err
 	}
