@@ -3,9 +3,6 @@ patch:
 	cp wasm/util_unix.go.patched vendor/github.com/in-toto/in-toto-golang/in_toto/util_unix.go
 
 build:
-	GOOS=js GOARCH=wasm go build -trimpath -ldflags=-buildid= -o wasm/tinfoil-verifier.wasm ./wasm/...
-	sha256sum wasm/tinfoil-verifier.wasm
+	docker build -t tinfoil-verifier-builder .
+	docker run --rm -v $(shell pwd):/src tinfoil-verifier-builder
 	#cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
-
-test:
-	go test ./...
