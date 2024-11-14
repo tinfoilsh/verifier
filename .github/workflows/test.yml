@@ -12,6 +12,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
       - name: Patch vendored dependencies for WASM
         run: make patch
