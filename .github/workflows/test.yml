@@ -1,0 +1,23 @@
+name: Test
+
+on:
+  push:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+
+      - name: Patch vendored dependencies for WASM
+        run: make patch
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
