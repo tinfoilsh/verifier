@@ -13,7 +13,8 @@ import (
 	"github.com/tinfoilanalytics/verifier/pkg/models"
 )
 
-// wget https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip
+// AWS Nitro Enclaves root certificate from: https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip
+// https://github.com/aws/aws-nitro-enclaves-nsm-api/blob/main/docs/attestation_process.md#21-attestation-document-definition
 
 //go:embed aws-nitro-root-g1.pem
 var awsRootCertBytes []byte
