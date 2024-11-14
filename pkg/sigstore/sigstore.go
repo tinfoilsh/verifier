@@ -3,10 +3,12 @@ package sigstore
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/root"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"github.com/tinfoilanalytics/verifier/pkg/models"
@@ -69,4 +71,24 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest st
 		PCR1: predicate["PCR1"].GetStringValue(),
 		PCR2: predicate["PCR2"].GetStringValue(),
 	}, nil
+}
+
+// FetchTrustRoot downloads the Sigstore trust root configuration and saves it as a JSON file
+func FetchTrustRoot() error {
+	opts := tuf.DefaultOptions()
+	client, err := tuf.New(opts)
+	if err != nil {
+		return err
+	}
+
+	rootJSON, err := client.GetTarget("trusted_root.json")
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile("trusted_root.json", rootJSON, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
