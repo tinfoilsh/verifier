@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -89,8 +90,12 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			defer resp.Body.Close()
-			attDocBytes, err = io.ReadAll(resp.Body)
+
+			var attDocB64 string
+			if err := json.NewDecoder(resp.Body).Decode(&attDocB64); err != nil {
+				panic(err)
+			}
+			attDocBytes, err = base64.StdEncoding.DecodeString(attDocB64)
 			if err != nil {
 				panic(err)
 			}
