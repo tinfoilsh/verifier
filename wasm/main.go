@@ -5,7 +5,7 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
+	"encoding/base64"
 	"syscall/js"
 
 	"github.com/tinfoilanalytics/verifier/pkg/nitro"
@@ -17,15 +17,10 @@ import (
 //go:embed test/trusted_root.json
 var trustedRootBytes []byte
 
-//go:embed test/bundle.jsonl
-var bundleBytes []byte
-
-//go:embed test/att_doc.bin
-var attDocBytes []byte
-
-func verify() js.Func {
+func verifySigstore() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		digest := "8c168b97025c49a7f34c0da01b22200e4dc3b1f858e76fc4555967eb28722b11"
+		digest := args[0].String()
+		bundleBytes := []byte(args[1].String())
 
 		sigstoreMeasurements, err := sigstore.VerifyAttestedMeasurements(
 			trustedRootBytes,
@@ -35,21 +30,29 @@ func verify() js.Func {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Sigstore", sigstoreMeasurements)
+
+		return sigstoreMeasurements.String()
+	})
+}
+
+func verifyNitro() js.Func {
+	return js.FuncOf(func(this js.Value, args []js.Value) any {
+		attDocBytes, err := base64.StdEncoding.DecodeString(args[0].String())
+		if err != nil {
+			panic(err)
+		}
 
 		nitroMeasurements, err := nitro.VerifyAttestation(attDocBytes)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Nitro", nitroMeasurements)
 
-		fmt.Println("Match?", sigstoreMeasurements.Equals(nitroMeasurements))
-
-		return "ok"
+		return nitroMeasurements.String()
 	})
 }
 
 func main() {
-	js.Global().Set("verify", verify())
+	js.Global().Set("verifySigstore", verifySigstore())
+	js.Global().Set("verifyNitro", verifyNitro())
 	<-make(chan struct{})
 }
