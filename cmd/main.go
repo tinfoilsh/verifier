@@ -24,13 +24,13 @@ var (
 
 func gitHubAttestation(digest string) ([]byte, error) {
 	url := "https://api.github.com/repos/" + *repo + "/attestations/sha256:" + digest
-	log.Printf("Fetching sigstore attestation from %s", url)
+	log.Printf("Fetching sigstore bundle from %s", url)
 	bundleResponse, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	if bundleResponse.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to fetch attestation: %s", bundleResponse.Status)
+		return nil, fmt.Errorf("failed to fetch sigstore bundle: %s", bundleResponse.Status)
 	}
 
 	var responseJSON struct {
@@ -76,7 +76,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Sigstore", sigstoreMeasurements)
+		log.Println("Sigstore", sigstoreMeasurements)
 	}
 
 	var nitroMeasurements *models.Measurements
@@ -106,10 +106,14 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Nitro", nitroMeasurements)
+		log.Println("Nitro", nitroMeasurements)
 	}
 
 	if sigstoreMeasurements != nil && nitroMeasurements != nil {
-		fmt.Println("Match?", sigstoreMeasurements.Equals(nitroMeasurements))
+		if sigstoreMeasurements.Equals(nitroMeasurements) {
+			log.Println("PCR values match! Verification success")
+		} else {
+			log.Println("PCR register mismatch. Verification failed")
+		}
 	}
 }
