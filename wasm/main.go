@@ -14,7 +14,7 @@ import (
 
 // curl -o trusted_root.json https://tuf-repo-cdn.sigstore.dev/targets/4364d7724c04cc912ce2a6c45ed2610e8d8d1c4dc857fb500292738d4d9c8d2c.trusted_root.json
 //
-//go:embed test/trusted_root.json
+//go:embed trusted_root.json
 var trustedRootBytes []byte
 
 func verifySigstore() js.Func {
