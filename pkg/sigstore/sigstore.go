@@ -16,12 +16,11 @@ import (
 
 const (
 	OidcIssuer = "https://token.actions.githubusercontent.com"
-	SanRegex   = "^https://github.com/tinfoilanalytics/nitro-enclave-pipeline-test/.github/workflows/release.yml@refs/tags/*"
 )
 
 // VerifyAttestedMeasurements verifies the attested measurements of an EIF measurement
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest string) (*models.Measurements, error) {
+func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, repo string) (*models.Measurements, error) {
 	trustedMaterial, err := root.NewTrustedRootFromJSON(trustedRootJSON)
 	if err != nil {
 		return nil, fmt.Errorf("parsing trusted root: %w", err)
@@ -47,7 +46,8 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest st
 		OidcIssuer,
 		"",
 		"",
-		SanRegex)
+		"^https://github.com/"+repo+"/.github/workflows/release.yml@refs/tags/*",
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating certificate identity: %w", err)
 	}

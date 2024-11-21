@@ -20,7 +20,7 @@ import (
 var (
 	attestationDoc = flag.String("attestation", "", "Path to the attestation document or URL")
 	digest         = flag.String("digest", "", "Artifact digest")
-	repo           = flag.String("repo", "", "Attested repo (e.g. tinfoilanalytics/nitro-pipeline-test)")
+	repo           = flag.String("repo", "", "Attested repo (e.g. tinfoilanalytics/nitro-private-inference-image)")
 )
 
 func gitHubAttestation(digest string) ([]byte, error) {
@@ -73,6 +73,7 @@ func main() {
 			sigstoreRootBytes,
 			bundleBytes,
 			*digest,
+			*repo,
 		)
 		if err != nil {
 			panic(err)
