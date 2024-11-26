@@ -8,7 +8,7 @@ https://tinfoilanalytics.github.io/verifier/
 
 ```bash
 go run cmd/main.go \
-  -attestation https://inference-demo.tinfoil.sh/.well-known/nitro-attestation \
+  -attestation https://inference.tinfoil.sh/.well-known/nitro-attestation \
   -repo tinfoilanalytics/nitro-private-inference-image \
-  -digest c6a7de8bd85b58d958a64ee244453fa49165fa35864c8a5af333ee65b922cc8d
+  -digest 6d87ba0d92af58c1d740b8aa7d2c3521d8cff96a520502a8b748c3a744ae015f
 ```
