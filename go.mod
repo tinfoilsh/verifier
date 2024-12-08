@@ -3,10 +3,9 @@ module github.com/tinfoilanalytics/verifier
 go 1.23.2
 
 require (
-	github.com/fxamacker/cbor/v2 v2.7.0
+	github.com/blocky/nitrite v0.0.1
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/sigstore-go v0.6.2
-	github.com/veraison/go-cose v1.2.1
 )
 
 require (
@@ -16,6 +15,7 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352 // indirect
 	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect

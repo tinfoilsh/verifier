@@ -4,6 +4,9 @@ github.com/asaskevich/govalidator
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
+# github.com/blocky/nitrite v0.0.1
+## explicit; go 1.17
+github.com/blocky/nitrite
 # github.com/cyberphone/json-canonicalization v0.0.0-20220623050100-57a0ce2678a7
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
@@ -306,9 +309,6 @@ github.com/transparency-dev/merkle
 github.com/transparency-dev/merkle/compact
 github.com/transparency-dev/merkle/proof
 github.com/transparency-dev/merkle/rfc6962
-# github.com/veraison/go-cose v1.2.1
-## explicit; go 1.18
-github.com/veraison/go-cose
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16

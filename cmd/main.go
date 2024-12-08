@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blocky/nitrite"
 	"github.com/tinfoilanalytics/verifier/pkg/models"
-	"github.com/tinfoilanalytics/verifier/pkg/nitro"
 	"github.com/tinfoilanalytics/verifier/pkg/sigstore"
 )
 
@@ -108,10 +108,11 @@ func main() {
 			}
 		}
 
-		nitroMeasurements, err = nitro.VerifyAttestation(attDocBytes)
+		att, err := nitrite.Verify(attDocBytes, nitrite.VerifyOptions{})
 		if err != nil {
 			panic(err)
 		}
+		nitroMeasurements = models.MeasurementFromDoc(att.Document)
 		log.Println("Nitro", nitroMeasurements)
 	}
 
