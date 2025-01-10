@@ -3,8 +3,12 @@
 
 package in_toto
 
-import "errors"
+import "golang.org/x/sys/unix"
 
 func isWritable(path string) error {
-	return errors.New("patched: unimplemented in js")
+	err := unix.Access(path, unix.W_OK)
+	if err != nil {
+		return err
+	}
+	return nil
 }
