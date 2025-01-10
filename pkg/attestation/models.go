@@ -1,4 +1,4 @@
-package models
+package attestation
 
 import (
 	"encoding/hex"

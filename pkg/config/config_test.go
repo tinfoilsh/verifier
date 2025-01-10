@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"testing"
@@ -7,11 +7,11 @@ import (
 )
 
 func TestConfigParse(t *testing.T) {
-	foo := `{
+	configFile := `{
 		"allowed": ">= 1.2.3, != 1.2.4"
 	}`
 
-	conf, err := Parse(foo)
+	conf, err := Parse(configFile)
 	assert.Nil(t, err)
 
 	assert.True(t, conf.IsValidVersion("1.2.3"))

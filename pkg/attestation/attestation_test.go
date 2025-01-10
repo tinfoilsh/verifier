@@ -1,10 +1,9 @@
-package main
+package attestation
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tinfoilanalytics/verifier/pkg/models"
 )
 
 func TestMainNitroVerifier(t *testing.T) {
@@ -16,11 +15,7 @@ func TestMainNitroVerifier(t *testing.T) {
 		}
 	}`
 
-	manifest, err := models.ParseManifest(payload)
+	attestation, err := ParseAttestation(payload)
 	assert.Nil(t, err)
-
-	attestation, err := manifest.GetAttestation()
-	assert.Nil(t, err)
-
 	assert.Equal(t, 3, len(attestation.Measurements))
 }

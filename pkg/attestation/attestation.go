@@ -1,9 +1,10 @@
-package models
+package attestation
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+
 	"github.com/blocky/nitrite"
 )
 
@@ -11,7 +12,7 @@ type Attestation struct {
 	Measurements []string
 }
 
-type Manifest struct {
+type AttestationResponse struct {
 	Version     string `json:"version"`
 	Attestation struct {
 		Format string `json:"format"`
@@ -19,12 +20,18 @@ type Manifest struct {
 	} `json:"attestation"`
 }
 
-func ParseManifest(j string) (*Manifest, error) {
-	var m Manifest
-	if err := json.Unmarshal([]byte(j), &m); err != nil {
+func ParseAttestation(j string) (*Attestation, error) {
+	var a AttestationResponse
+	if err := json.Unmarshal([]byte(j), &a); err != nil {
 		return nil, err
 	}
-	return &m, nil
+
+	switch a.Attestation.Format {
+	case "awsnitro":
+		return parseAWSNitroAttestation(a.Attestation.Body)
+	default:
+		return nil, errors.New("unsupported attestation format")
+	}
 }
 
 func parseAWSNitroAttestation(attestationDoc string) (*Attestation, error) {
@@ -45,13 +52,4 @@ func parseAWSNitroAttestation(attestationDoc string) (*Attestation, error) {
 			pcrs.PCR2,
 		},
 	}, nil
-}
-
-func (m *Manifest) GetAttestation() (*Attestation, error) {
-	switch m.Attestation.Format {
-	case "awsnitro":
-		return parseAWSNitroAttestation(m.Attestation.Body)
-	default:
-		return nil, errors.New("unsupported attestation format")
-	}
 }
