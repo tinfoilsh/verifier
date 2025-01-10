@@ -3,6 +3,7 @@ module github.com/tinfoilanalytics/verifier
 go 1.23.2
 
 require (
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/blocky/nitrite v0.0.1
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/sigstore-go v0.6.2
