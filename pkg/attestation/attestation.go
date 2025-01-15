@@ -1,55 +1,58 @@
 package attestation
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-
-	"github.com/blocky/nitrite"
+	"slices"
 )
 
-type Attestation struct {
-	Measurements []string
+type MeasurementType string
+
+const (
+	AWSNitroEnclaveV1 MeasurementType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
+)
+
+var (
+	ErrUnsupportedAttestationFormat = errors.New("unsupported attestation format")
+	ErrFormatMismatch               = errors.New("attestation format mismatch")
+	ErrMeasurementMismatch          = errors.New("measurement mismatch")
+)
+
+type Measurement struct {
+	Type      MeasurementType
+	Registers []string
 }
 
-type AttestationResponse struct {
-	Version     string `json:"version"`
+func (m *Measurement) Equals(other *Measurement) error {
+	if m.Type != other.Type {
+		return ErrFormatMismatch
+	}
+	if len(m.Registers) != len(other.Registers) || !slices.Equal(m.Registers, other.Registers) {
+		return ErrMeasurementMismatch
+	}
+
+	return nil
+}
+
+// Document represents an attestation document
+type Document struct {
+	Version     string `json:"version"` // Enclave's self-reported release version
 	Attestation struct {
-		Format string `json:"format"`
-		Body   string `json:"body"`
+		Format MeasurementType `json:"format"`
+		Body   string          `json:"body"`
 	} `json:"attestation"`
 }
 
-func ParseAttestation(j string) (*Attestation, error) {
-	var a AttestationResponse
-	if err := json.Unmarshal([]byte(j), &a); err != nil {
+func ParseAttestation(attestationDocJSON []byte) (*Measurement, error) {
+	var d Document
+	if err := json.Unmarshal(attestationDocJSON, &d); err != nil {
 		return nil, err
 	}
 
-	switch a.Attestation.Format {
-	case "awsnitro":
-		return parseAWSNitroAttestation(a.Attestation.Body)
+	switch d.Attestation.Format {
+	case AWSNitroEnclaveV1:
+		return parseAWSNitroAttestation(d.Attestation.Body)
 	default:
-		return nil, errors.New("unsupported attestation format")
+		return nil, ErrUnsupportedAttestationFormat
 	}
-}
-
-func parseAWSNitroAttestation(attestationDoc string) (*Attestation, error) {
-	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
-	if err != nil {
-		return nil, err
-	}
-	attestedResult, err := nitrite.Verify(attDocBytes, nitrite.VerifyOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	pcrs := MeasurementFromDoc(attestedResult.Document)
-	return &Attestation{
-		Measurements: []string{
-			pcrs.PCR0,
-			pcrs.PCR1,
-			pcrs.PCR2,
-		},
-	}, nil
 }
