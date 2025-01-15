@@ -16,7 +16,7 @@ func TestMainNitroVerifier(t *testing.T) {
 	undo := mockNitroVerifier()
 	defer undo()
 
-	attestation, err := VerifyAttestation([]byte(payload))
+	attestation, err := VerifyAttestationJSON([]byte(payload))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(attestation.Registers))
 }

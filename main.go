@@ -66,7 +66,7 @@ func (c *Client) CheckAttestation() error {
 		}
 	}`
 
-	att, err := attestation.VerifyAttestation([]byte(respBody))
+	att, err := attestation.VerifyAttestationJSON([]byte(respBody))
 	if err != nil {
 		return err
 	}

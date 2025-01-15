@@ -41,17 +41,23 @@ type Document struct {
 	Body    string        `json:"body"`
 }
 
-// VerifyAttestation validates the attestation document and returns the inner measurement
-func VerifyAttestation(attestationDocJSON []byte) (*Measurement, error) {
-	var d Document
-	if err := json.Unmarshal(attestationDocJSON, &d); err != nil {
-		return nil, err
-	}
-
+// Verify checks the attestation document against its trust root and returns the inner measurements
+func (d *Document) Verify() (*Measurement, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	default:
 		return nil, ErrUnsupportedAttestationFormat
 	}
+}
+
+// VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
+func VerifyAttestationJSON(j []byte) (*Measurement, error) {
+	var doc Document
+	err := json.Unmarshal(j, &doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return doc.Verify()
 }
