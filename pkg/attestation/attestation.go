@@ -36,9 +36,8 @@ func (m *Measurement) Equals(other *Measurement) error {
 
 // Document represents an attestation document
 type Document struct {
-	Version string        `json:"version"` // Enclave's self-reported release version
-	Format  PredicateType `json:"format"`
-	Body    string        `json:"body"`
+	Format PredicateType `json:"format"`
+	Body   string        `json:"body"`
 }
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
