@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,8 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/blocky/nitrite"
-	"github.com/tinfoilanalytics/verifier/pkg/models"
+	"github.com/tinfoilanalytics/verifier/pkg/attestation"
 	"github.com/tinfoilanalytics/verifier/pkg/sigstore"
 )
 
@@ -49,7 +47,8 @@ func gitHubAttestation(digest string) ([]byte, error) {
 func main() {
 	flag.Parse()
 
-	var sigstoreMeasurements *models.Measurements
+	var codeMeasurements, enclaveMeasurements *attestation.Measurement
+
 	if *digest != "" {
 		if *repo == "" {
 			log.Fatal("Missing repo")
@@ -69,7 +68,7 @@ func main() {
 			panic(err)
 		}
 
-		sigstoreMeasurements, err = sigstore.VerifyAttestedMeasurements(
+		codeMeasurements, err = sigstore.VerifyAttestedMeasurements(
 			sigstoreRootBytes,
 			bundleBytes,
 			*digest,
@@ -78,12 +77,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		log.Println("Sigstore", sigstoreMeasurements)
+		log.Println("Sigstore", codeMeasurements)
 	}
 
-	var nitroMeasurements *models.Measurements
 	if *attestationDoc != "" {
-		var attDocBytes []byte
+		var attDocJSON []byte
 		var err error
 		if strings.HasPrefix(*attestationDoc, "http") {
 			log.Printf("Fetching attestation doc from %s", *attestationDoc)
@@ -91,36 +89,27 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-
-			var attDocB64 string
-			if err := json.NewDecoder(resp.Body).Decode(&attDocB64); err != nil {
-				panic(err)
-			}
-			attDocBytes, err = base64.StdEncoding.DecodeString(attDocB64)
-			if err != nil {
-				panic(err)
-			}
+			defer resp.Body.Close()
+			attDocJSON, err = io.ReadAll(resp.Body)
 		} else {
 			log.Printf("Reading attestation doc from %s", *attestationDoc)
-			attDocBytes, err = os.ReadFile(*attestationDoc)
-			if err != nil {
-				panic(err)
-			}
+			attDocJSON, err = os.ReadFile(*attestationDoc)
 		}
-
-		att, err := nitrite.Verify(attDocBytes, nitrite.VerifyOptions{})
 		if err != nil {
 			panic(err)
 		}
-		nitroMeasurements = models.MeasurementFromDoc(att.Document)
-		log.Println("Nitro", nitroMeasurements)
+
+		enclaveMeasurements, err = attestation.ParseAttestation(attDocJSON)
+		if err != nil {
+			log.Fatalf("Failed to parse enclave attestation doc: %v", err)
+		}
 	}
 
-	if sigstoreMeasurements != nil && nitroMeasurements != nil {
-		if sigstoreMeasurements.Equals(nitroMeasurements) {
+	if codeMeasurements != nil && enclaveMeasurements != nil {
+		if err := codeMeasurements.Equals(enclaveMeasurements); err != nil {
 			log.Println("PCR values match! Verification success")
 		} else {
-			log.Println("PCR register mismatch. Verification failed")
+			log.Printf("PCR register mismatch. Verification failed: %v", err)
 		}
 	}
 }

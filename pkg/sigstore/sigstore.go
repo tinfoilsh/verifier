@@ -11,7 +11,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
-	"github.com/tinfoilanalytics/verifier/pkg/models"
+	"github.com/tinfoilanalytics/verifier/pkg/attestation"
 )
 
 const (
@@ -20,7 +20,10 @@ const (
 
 // VerifyAttestedMeasurements verifies the attested measurements of an EIF measurement
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, repo string) (*models.Measurements, error) {
+func VerifyAttestedMeasurements(
+	trustedRootJSON, bundleJSON []byte,
+	hexDigest, repo string,
+) (*attestation.Measurement, error) {
 	trustedMaterial, err := root.NewTrustedRootFromJSON(trustedRootJSON)
 	if err != nil {
 		return nil, fmt.Errorf("parsing trusted root: %w", err)
@@ -32,7 +35,7 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, r
 		return nil, fmt.Errorf("parsing bundle: %w", err)
 	}
 
-	sev, err := verify.NewSignedEntityVerifier(
+	verifier, err := verify.NewSignedEntityVerifier(
 		trustedMaterial,
 		verify.WithSignedCertificateTimestamps(1),
 		verify.WithTransparencyLog(1),
@@ -46,6 +49,7 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, r
 		OidcIssuer,
 		"",
 		"",
+		// TODO: Can we pin this to latest without fetching the latest release?
 		"^https://github.com/"+repo+"/.github/workflows/release.yml@refs/tags/*",
 	)
 	if err != nil {
@@ -56,7 +60,7 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, r
 	if err != nil {
 		return nil, fmt.Errorf("decoding hex digest: %w", err)
 	}
-	result, err := sev.Verify(&b, verify.NewPolicy(
+	result, err := verifier.Verify(&b, verify.NewPolicy(
 		verify.WithArtifactDigest("sha256", digest),
 		verify.WithCertificateIdentity(certID)),
 	)
@@ -64,13 +68,23 @@ func VerifyAttestedMeasurements(trustedRootJSON, bundleJSON []byte, hexDigest, r
 		return nil, fmt.Errorf("verifying: %w", err)
 	}
 
-	predicate := result.Statement.Predicate.GetFields()
+	predicate := result.Statement.Predicate
+	predicateFields := predicate.Fields
 
-	return &models.Measurements{
-		PCR0: predicate["PCR0"].GetStringValue(),
-		PCR1: predicate["PCR1"].GetStringValue(),
-		PCR2: predicate["PCR2"].GetStringValue(),
-	}, nil
+	measurementType := attestation.MeasurementType(result.Statement.PredicateType)
+	switch measurementType {
+	case attestation.AWSNitroEnclaveV1:
+		return &attestation.Measurement{
+			Type: measurementType,
+			Registers: []string{
+				predicateFields["PCR0"].GetStringValue(),
+				predicateFields["PCR1"].GetStringValue(),
+				predicateFields["PCR2"].GetStringValue(),
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
+	}
 }
 
 // FetchTrustRoot downloads the Sigstore trust root configuration and saves it as a JSON file
