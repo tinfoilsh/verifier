@@ -42,21 +42,21 @@ type Document struct {
 }
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
-func (d *Document) Verify() (*Measurement, error) {
+func (d *Document) Verify() (*Measurement, []byte, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	default:
-		return nil, ErrUnsupportedAttestationFormat
+		return nil, nil, ErrUnsupportedAttestationFormat
 	}
 }
 
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
-func VerifyAttestationJSON(j []byte) (*Measurement, error) {
+func VerifyAttestationJSON(j []byte) (*Measurement, []byte, error) {
 	var doc Document
 	err := json.Unmarshal(j, &doc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return doc.Verify()
