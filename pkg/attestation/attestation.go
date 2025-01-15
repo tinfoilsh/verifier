@@ -6,10 +6,10 @@ import (
 	"slices"
 )
 
-type MeasurementType string
+type PredicateType string
 
 const (
-	AWSNitroEnclaveV1 MeasurementType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
+	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 )
 
 type Measurement struct {
-	Type      MeasurementType
+	Type      PredicateType
 	Registers []string
 }
 
@@ -36,22 +36,21 @@ func (m *Measurement) Equals(other *Measurement) error {
 
 // Document represents an attestation document
 type Document struct {
-	Version     string `json:"version"` // Enclave's self-reported release version
-	Attestation struct {
-		Format MeasurementType `json:"format"`
-		Body   string          `json:"body"`
-	} `json:"attestation"`
+	Version string        `json:"version"` // Enclave's self-reported release version
+	Format  PredicateType `json:"format"`
+	Body    string        `json:"body"`
 }
 
-func ParseAttestation(attestationDocJSON []byte) (*Measurement, error) {
+// VerifyAttestation validates the attestation document and returns the inner measurement
+func VerifyAttestation(attestationDocJSON []byte) (*Measurement, error) {
 	var d Document
 	if err := json.Unmarshal(attestationDocJSON, &d); err != nil {
 		return nil, err
 	}
 
-	switch d.Attestation.Format {
+	switch d.Format {
 	case AWSNitroEnclaveV1:
-		return parseAWSNitroAttestation(d.Attestation.Body)
+		return verifyNitroAttestation(d.Body)
 	default:
 		return nil, ErrUnsupportedAttestationFormat
 	}

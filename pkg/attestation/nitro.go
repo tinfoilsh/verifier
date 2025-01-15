@@ -10,9 +10,9 @@ var (
 	NitroEnclaveVerifierOpts = nitrite.VerifyOptions{}
 )
 
-// parseAWSNitroAttestation decodes a base64 encoded attestation document,
+// verifyNitroAttestation decodes a base64 encoded attestation document,
 // verifies it against the AWS root, and returns the inner measurements
-func parseAWSNitroAttestation(attestationDoc string) (*Measurement, error) {
+func verifyNitroAttestation(attestationDoc string) (*Measurement, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
 		return nil, err

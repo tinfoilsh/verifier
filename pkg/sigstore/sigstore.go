@@ -71,7 +71,7 @@ func VerifyAttestedMeasurements(
 	predicate := result.Statement.Predicate
 	predicateFields := predicate.Fields
 
-	measurementType := attestation.MeasurementType(result.Statement.PredicateType)
+	measurementType := attestation.PredicateType(result.Statement.PredicateType)
 	switch measurementType {
 	case attestation.AWSNitroEnclaveV1:
 		return &attestation.Measurement{

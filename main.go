@@ -66,11 +66,11 @@ func (c *Client) CheckAttestation() error {
 		}
 	}`
 
-	att, err := attestation.ParseAttestation(respBody)
+	att, err := attestation.VerifyAttestation([]byte(respBody))
 	if err != nil {
 		return err
 	}
-	log.Println(att.Measurements)
+	log.Println(att.Registers)
 
 	// "https://api.github.com/repos/" + repo + "/attestations/sha256:" + digest;
 

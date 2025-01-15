@@ -99,7 +99,7 @@ func main() {
 			panic(err)
 		}
 
-		enclaveMeasurements, err = attestation.ParseAttestation(attDocJSON)
+		enclaveMeasurements, err = attestation.VerifyAttestation(attDocJSON)
 		if err != nil {
 			log.Fatalf("Failed to parse enclave attestation doc: %v", err)
 		}
