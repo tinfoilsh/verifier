@@ -1,0 +1,34 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/checkout@v3
+
+      - run: go build -v ./...
+
+      - run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
+
+      - name: Run tests
+        run: |
+          set -euo pipefail
+          go test -p 1 -json -v -covermode atomic -coverprofile=cover.out ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+
+      - name: Upload original test log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-log
+          path: /tmp/gotest.log
+          if-no-files-found: error
