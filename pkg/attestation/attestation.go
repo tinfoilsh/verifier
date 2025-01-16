@@ -1,10 +1,12 @@
 package attestation
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 type PredicateType string
@@ -21,6 +23,12 @@ var (
 type Measurement struct {
 	Type      PredicateType
 	Registers []string
+}
+
+// Fingerprint computes the SHA-256 hash of all measurements
+func (m *Measurement) Fingerprint() string {
+	all := string(m.Type) + strings.Join(m.Registers, "")
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
