@@ -5,12 +5,9 @@ package main
 
 import (
 	_ "embed"
-	"encoding/base64"
 	"syscall/js"
 
-	"github.com/blocky/nitrite"
-
-	"github.com/tinfoilanalytics/verifier/pkg/models"
+	"github.com/tinfoilanalytics/verifier/pkg/attestation"
 	"github.com/tinfoilanalytics/verifier/pkg/sigstore"
 )
 
@@ -19,13 +16,13 @@ import (
 //go:embed trusted_root.json
 var trustedRootBytes []byte
 
-func verifySigstore() js.Func {
+func verifyCode() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
 		digest := args[0].String()
 		bundleBytes := []byte(args[1].String())
 		repo := args[2].String()
 
-		sigstoreMeasurements, err := sigstore.VerifyMeasurementAttestation(
+		measurement, err := sigstore.VerifyMeasurementAttestation(
 			trustedRootBytes,
 			bundleBytes,
 			digest,
@@ -35,27 +32,22 @@ func verifySigstore() js.Func {
 			panic(err)
 		}
 
-		return sigstoreMeasurements.String()
+		return measurement.Fingerprint()
 	})
 }
 
-func verifyNitro() js.Func {
+func verifyEnclave() js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
-		attDocBytes, err := base64.StdEncoding.DecodeString(args[0].String())
+		measurement, _, err := attestation.VerifyAttestationJSON([]byte(args[0].String()))
 		if err != nil {
 			panic(err)
 		}
-
-		att, err := nitrite.Verify(attDocBytes, nitrite.VerifyOptions{})
-		if err != nil {
-			panic(err)
-		}
-		return models.MeasurementFromDoc(att.Document).String()
+		return measurement.Fingerprint()
 	})
 }
 
 func main() {
-	js.Global().Set("verifySigstore", verifySigstore())
-	js.Global().Set("verifyNitro", verifyNitro())
+	js.Global().Set("verifySigstore", verifyCode())
+	js.Global().Set("verifyNitro", verifyEnclave())
 	<-make(chan struct{})
 }
