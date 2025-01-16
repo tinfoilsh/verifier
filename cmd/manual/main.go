@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"flag"
 	"io"
@@ -13,8 +14,8 @@ import (
 )
 
 var (
-	enclaveHost = flag.String("e", "", "Enclave hostname")
-	repo        = flag.String("r", "", "Source repo (e.g. tinfoilanalytics/nitro-private-inference-image)")
+	enclaveHost = flag.String("e", "inference-enclave.tinfoil.sh", "Enclave hostname")
+	repo        = flag.String("r", "tinfoilanalytics/nitro-enclave-build-demo", "Source repo (e.g. tinfoilanalytics/nitro-private-inference-image)")
 )
 
 func main() {
@@ -63,19 +64,26 @@ func main() {
 
 	if *enclaveHost != "" {
 		log.Printf("Fetching attestation doc from %s", *enclaveHost)
-		remoteAttestation, err := attestation.Fetch(*enclaveHost)
+		remoteAttestation, enclaveCertFP, err := attestation.Fetch(*enclaveHost)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Printf("Enclave TLS public key fingerprint: %x", enclaveCertFP)
 
 		log.Println("Verifying enclave measurements")
-		var tlsPubkey []byte
-		enclaveMeasurements, tlsPubkey, err = remoteAttestation.Verify()
+		var attestedCertFP []byte
+		enclaveMeasurements, attestedCertFP, err = remoteAttestation.Verify()
 		if err != nil {
 			log.Fatalf("Failed to parse enclave attestation doc: %v", err)
 		}
 
-		log.Printf("TLS public key fingerprint: %x", tlsPubkey)
+		log.Printf("TLS certificate fingerprint: %x", attestedCertFP)
+
+		if !bytes.Equal(enclaveCertFP, attestedCertFP) {
+			log.Fatalf("Certificate fingerprint mismatch")
+		} else {
+			log.Println("Certificate fingerprint match")
+		}
 	}
 
 	if codeMeasurements != nil && enclaveMeasurements != nil {
