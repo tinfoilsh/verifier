@@ -76,7 +76,7 @@ func (s *SecureClient) VerificationState() *EnclaveState {
 	return s.verifiedState
 }
 
-// HTTPClient returns a HTTP client that only accepts TLS connections to the verified enclave
+// HTTPClient returns an HTTP client that only accepts TLS connections to the verified enclave
 func (s *SecureClient) HTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &TLSBoundRoundTripper{s.verifiedState.CertFingerprint},
