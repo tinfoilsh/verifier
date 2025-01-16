@@ -3,6 +3,7 @@ package attestation
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 )
 
@@ -13,9 +14,8 @@ const (
 )
 
 var (
-	ErrUnsupportedAttestationFormat = errors.New("unsupported attestation format")
-	ErrFormatMismatch               = errors.New("attestation format mismatch")
-	ErrMeasurementMismatch          = errors.New("measurement mismatch")
+	ErrFormatMismatch      = errors.New("attestation format mismatch")
+	ErrMeasurementMismatch = errors.New("measurement mismatch")
 )
 
 type Measurement struct {
@@ -46,7 +46,7 @@ func (d *Document) Verify() (*Measurement, []byte, error) {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	default:
-		return nil, nil, ErrUnsupportedAttestationFormat
+		return nil, nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
 }
 
