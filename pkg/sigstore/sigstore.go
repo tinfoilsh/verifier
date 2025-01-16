@@ -3,8 +3,6 @@ package sigstore
 import (
 	"encoding/hex"
 	"fmt"
-	"os"
-
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/root"
@@ -18,9 +16,9 @@ const (
 	OidcIssuer = "https://token.actions.githubusercontent.com"
 )
 
-// VerifyAttestedMeasurements verifies the attested measurements of an EIF measurement
+// VerifyMeasurementAttestation verifies the attested measurements of an EIF measurement
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyAttestedMeasurements(
+func VerifyMeasurementAttestation(
 	trustedRootJSON, bundleJSON []byte,
 	hexDigest, repo string,
 ) (*attestation.Measurement, error) {
@@ -87,22 +85,12 @@ func VerifyAttestedMeasurements(
 	}
 }
 
-// FetchTrustRoot downloads the Sigstore trust root configuration and saves it as a JSON file
-func FetchTrustRoot() error {
-	opts := tuf.DefaultOptions()
-	client, err := tuf.New(opts)
+// FetchTrustRoot fetches the trust root from the Sigstore TUF repo
+func FetchTrustRoot() ([]byte, error) {
+	client, err := tuf.New(tuf.DefaultOptions())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rootJSON, err := client.GetTarget("trusted_root.json")
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile("trusted_root.json", rootJSON, 0644); err != nil {
-		return err
-	}
-
-	return nil
+	return client.GetTarget("trusted_root.json")
 }

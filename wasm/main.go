@@ -25,7 +25,7 @@ func verifySigstore() js.Func {
 		bundleBytes := []byte(args[1].String())
 		repo := args[2].String()
 
-		sigstoreMeasurements, err := sigstore.VerifyAttestedMeasurements(
+		sigstoreMeasurements, err := sigstore.VerifyMeasurementAttestation(
 			trustedRootBytes,
 			bundleBytes,
 			digest,

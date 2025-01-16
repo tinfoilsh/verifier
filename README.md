@@ -8,6 +8,6 @@ https://tinfoilanalytics.github.io/verifier
 
 ```bash
 go run cmd/main.go \
-  -u https://inference-enclave.tinfoil.sh/.well-known/tinfoil-attestation \
+  -e inference-enclave.tinfoil.sh \
   -r tinfoilanalytics/nitro-enclave-build-demo
 ```
