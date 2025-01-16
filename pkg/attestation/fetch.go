@@ -11,7 +11,7 @@ const (
 )
 
 // Fetch retrieves the attestation document from a given enclave hostname
-func Fetch(host string) (*Document, error) {
+func Fetch(host string) (*Document, []byte, error) {
 	var u url.URL
 	u.Host = host
 	u.Scheme = "https"
@@ -19,13 +19,13 @@ func Fetch(host string) (*Document, error) {
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	var doc Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &doc, nil
+	return &doc, CertFP(*resp.TLS), nil
 }
