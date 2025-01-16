@@ -3,6 +3,7 @@ package sigstore
 import (
 	"encoding/hex"
 	"fmt"
+
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
 	"github.com/sigstore/sigstore-go/pkg/root"

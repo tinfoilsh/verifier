@@ -3,6 +3,7 @@ package attestation
 import (
 	"encoding/base64"
 	"encoding/hex"
+
 	"github.com/blocky/nitrite"
 )
 

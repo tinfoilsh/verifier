@@ -3,7 +3,6 @@ package github
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 )
@@ -11,7 +10,6 @@ import (
 // FetchLatestRelease gets the latest release and EIF hash of a repo
 func FetchLatestRelease(repo string) (string, string, error) {
 	url := "https://api.github.com/repos/" + repo + "/releases/latest"
-	log.Printf("Fetching latest release for %s", repo)
 	releaseResponse, err := http.Get(url)
 	if err != nil {
 		return "", "", err
@@ -37,7 +35,6 @@ func FetchLatestRelease(repo string) (string, string, error) {
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
 func FetchAttestationBundle(repo, digest string) ([]byte, error) {
 	url := "https://api.github.com/repos/" + repo + "/attestations/sha256:" + digest
-	log.Printf("Fetching sigstore bundle from %s for EIF %s", repo, digest)
 	bundleResponse, err := http.Get(url)
 	if err != nil {
 		return nil, err

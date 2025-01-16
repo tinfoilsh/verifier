@@ -2,7 +2,6 @@ package attestation
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -20,7 +19,7 @@ func Fetch(host string) (*Document, error) {
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 

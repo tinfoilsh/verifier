@@ -26,6 +26,7 @@ func main() {
 
 	var codeMeasurements, enclaveMeasurements *attestation.Measurement
 
+	log.Printf("Fetching latest release for %s", *repo)
 	latestTag, eifHash, err := github.FetchLatestRelease(*repo)
 	if err != nil {
 		log.Fatalf("Failed to fetch latest release: %v", err)
@@ -34,6 +35,7 @@ func main() {
 	log.Printf("Latest release: %s", latestTag)
 	log.Printf("EIF hash: %s", eifHash)
 
+	log.Printf("Fetching sigstore bundle from %s for EIF %s", *repo, eifHash)
 	bundleBytes, err := github.FetchAttestationBundle(*repo, eifHash)
 	if err != nil {
 		log.Fatal(err)
