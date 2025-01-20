@@ -4,9 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"flag"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/tinfoilanalytics/verifier/pkg/attestation"
 	"github.com/tinfoilanalytics/verifier/pkg/github"
@@ -33,20 +31,13 @@ func main() {
 		log.Fatalf("Failed to fetch latest release: %v", err)
 	}
 
-	log.Printf("Latest release: %s", latestTag)
-	log.Printf("EIF hash: %s", eifHash)
-
-	log.Printf("Fetching sigstore bundle from %s for EIF %s", *repo, eifHash)
+	log.Printf("Fetching sigstore bundle from %s for latest version %s EIF %s", latestTag, *repo, eifHash)
 	bundleBytes, err := github.FetchAttestationBundle(*repo, eifHash)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sigstoreResponse, err := http.Get("https://tuf-repo-cdn.sigstore.dev/targets/4364d7724c04cc912ce2a6c45ed2610e8d8d1c4dc857fb500292738d4d9c8d2c.trusted_root.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	sigstoreRootBytes, err := io.ReadAll(sigstoreResponse.Body)
+	sigstoreRootBytes, err := sigstore.FetchTrustRoot()
 	if err != nil {
 		log.Fatal(err)
 	}
