@@ -1,4 +1,5 @@
 .idea/
 tinfoil-verifier.wasm
 verifier
-TinfoilVerifier.xcframework
+TinfoilVerifier.xcframework/
+vendor/
