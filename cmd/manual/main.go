@@ -1,11 +1,10 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"flag"
-	"io"
 	"log"
-	"net/http"
 
 	"github.com/tinfoilanalytics/verifier/pkg/attestation"
 	"github.com/tinfoilanalytics/verifier/pkg/github"
@@ -13,8 +12,8 @@ import (
 )
 
 var (
-	enclaveHost = flag.String("e", "", "Enclave hostname")
-	repo        = flag.String("r", "", "Source repo (e.g. tinfoilanalytics/nitro-private-inference-image)")
+	enclaveHost = flag.String("e", "inference-enclave.tinfoil.sh", "Enclave hostname")
+	repo        = flag.String("r", "tinfoilanalytics/nitro-enclave-build-demo", "Source repo (e.g. tinfoilanalytics/nitro-private-inference-image)")
 )
 
 func main() {
@@ -32,20 +31,13 @@ func main() {
 		log.Fatalf("Failed to fetch latest release: %v", err)
 	}
 
-	log.Printf("Latest release: %s", latestTag)
-	log.Printf("EIF hash: %s", eifHash)
-
-	log.Printf("Fetching sigstore bundle from %s for EIF %s", *repo, eifHash)
+	log.Printf("Fetching sigstore bundle from %s for latest version %s EIF %s", latestTag, *repo, eifHash)
 	bundleBytes, err := github.FetchAttestationBundle(*repo, eifHash)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sigstoreResponse, err := http.Get("https://tuf-repo-cdn.sigstore.dev/targets/4364d7724c04cc912ce2a6c45ed2610e8d8d1c4dc857fb500292738d4d9c8d2c.trusted_root.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	sigstoreRootBytes, err := io.ReadAll(sigstoreResponse.Body)
+	sigstoreRootBytes, err := sigstore.FetchTrustRoot()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,19 +55,26 @@ func main() {
 
 	if *enclaveHost != "" {
 		log.Printf("Fetching attestation doc from %s", *enclaveHost)
-		remoteAttestation, err := attestation.Fetch(*enclaveHost)
+		remoteAttestation, enclaveCertFP, err := attestation.Fetch(*enclaveHost)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Printf("Enclave TLS public key fingerprint: %x", enclaveCertFP)
 
 		log.Println("Verifying enclave measurements")
-		var tlsPubkey []byte
-		enclaveMeasurements, tlsPubkey, err = remoteAttestation.Verify()
+		var attestedCertFP []byte
+		enclaveMeasurements, attestedCertFP, err = remoteAttestation.Verify()
 		if err != nil {
 			log.Fatalf("Failed to parse enclave attestation doc: %v", err)
 		}
 
-		log.Printf("TLS public key fingerprint: %x", tlsPubkey)
+		log.Printf("TLS certificate fingerprint: %x", attestedCertFP)
+
+		if !bytes.Equal(enclaveCertFP, attestedCertFP) {
+			log.Fatalf("Certificate fingerprint mismatch")
+		} else {
+			log.Println("Certificate fingerprint match")
+		}
 	}
 
 	if codeMeasurements != nil && enclaveMeasurements != nil {

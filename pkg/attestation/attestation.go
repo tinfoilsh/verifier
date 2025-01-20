@@ -2,6 +2,7 @@ package attestation
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -67,4 +68,10 @@ func VerifyAttestationJSON(j []byte) (*Measurement, []byte, error) {
 	}
 
 	return doc.Verify()
+}
+
+// CertFP gets the SHA256 fingerprint of a certificate
+func CertFP(c tls.ConnectionState) []byte {
+	fp := sha256.Sum256(c.PeerCertificates[0].Raw)
+	return fp[:]
 }

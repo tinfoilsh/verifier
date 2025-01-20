@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
@@ -28,20 +29,20 @@ func NewSecureClient(enclave, repo string) *SecureClient {
 }
 
 // Verify verifies the enclave against the latest code release
-func (s *SecureClient) Verify() error {
+func (s *SecureClient) Verify() (*EnclaveState, error) {
 	_, eifHash, err := github.FetchLatestRelease(s.repo)
 	if err != nil {
-		return fmt.Errorf("failed to fetch latest release: %v", err)
+		return nil, fmt.Errorf("failed to fetch latest release: %v", err)
 	}
 
 	sigstoreBundle, err := github.FetchAttestationBundle(s.repo, eifHash)
 	if err != nil {
-		return fmt.Errorf("failed to fetch attestation bundle: %v", err)
+		return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
 	}
 
 	sigstoreTrustRoot, err := sigstore.FetchTrustRoot()
 	if err != nil {
-		return fmt.Errorf("failed to fetch trust root: %v", err)
+		return nil, fmt.Errorf("failed to fetch trust root: %v", err)
 	}
 
 	codeMeasurements, err := sigstore.VerifyMeasurementAttestation(
@@ -49,26 +50,30 @@ func (s *SecureClient) Verify() error {
 		eifHash, s.repo,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to verify attested measurements: %v", err)
+		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
 	}
 
-	enclaveAttestation, err := attestation.Fetch(s.enclave)
+	enclaveAttestation, enclaveCertFP, err := attestation.Fetch(s.enclave)
 	if err != nil {
-		return fmt.Errorf("failed to fetch enclave measurements: %v", err)
+		return nil, fmt.Errorf("failed to fetch enclave measurements: %v", err)
 	}
-	enclaveMeasurements, certFP, err := enclaveAttestation.Verify()
+	enclaveMeasurements, attestedCertFP, err := enclaveAttestation.Verify()
 	if err != nil {
-		return fmt.Errorf("failed to verify enclave measurements: %v", err)
+		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
+	}
+
+	if !bytes.Equal(enclaveCertFP, attestedCertFP) {
+		return nil, ErrCertMismatch
 	}
 
 	err = codeMeasurements.Equals(enclaveMeasurements)
 	if err == nil {
 		s.verifiedState = &EnclaveState{
-			CertFingerprint: certFP,
+			CertFingerprint: attestedCertFP,
 			EIFHash:         eifHash,
 		}
 	}
-	return err
+	return s.verifiedState, err
 }
 
 // VerificationState returns the last verified enclave state
@@ -81,4 +86,36 @@ func (s *SecureClient) HTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &TLSBoundRoundTripper{s.verifiedState.CertFingerprint},
 	}
+}
+
+func (s *SecureClient) makeRequest(req *http.Request) (*Response, error) {
+	resp, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return toResponse(resp)
+}
+
+// Post makes an HTTP POST request
+func (s *SecureClient) Post(url string, headers map[string]string, body []byte) (*Response, error) {
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	return s.makeRequest(req)
+}
+
+// Get makes a HTTP GET request
+func (s *SecureClient) Get(url string, headers map[string]string) (*Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	return s.makeRequest(req)
 }

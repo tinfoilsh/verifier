@@ -1,6 +1,7 @@
 package sigstore
 
 import (
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 
@@ -88,7 +89,10 @@ func VerifyMeasurementAttestation(
 
 // FetchTrustRoot fetches the trust root from the Sigstore TUF repo
 func FetchTrustRoot() ([]byte, error) {
-	client, err := tuf.New(tuf.DefaultOptions())
+	tufOpts := tuf.
+		DefaultOptions().
+		WithDisableLocalCache()
+	client, err := tuf.New(tufOpts)
 	if err != nil {
 		return nil, err
 	}

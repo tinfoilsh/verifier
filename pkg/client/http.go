@@ -1,37 +1,26 @@
 package client
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
-	"errors"
+	"io"
 	"net/http"
 )
 
-var (
-	ErrNoTLS        = errors.New("no TLS connection")
-	ErrCertMismatch = errors.New("certificate fingerprint mismatch")
-)
-
-type TLSBoundRoundTripper struct {
-	ExpectedCertFP []byte
+type Response struct {
+	Status     string
+	StatusCode int
+	Headers    map[string][]string
+	Body       []byte
 }
 
-var _ http.RoundTripper = &TLSBoundRoundTripper{}
-
-func (t *TLSBoundRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	resp, err := http.DefaultTransport.RoundTrip(r)
+func toResponse(r *http.Response) (*Response, error) {
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
-
-	if resp.TLS == nil {
-		return nil, ErrNoTLS
-	}
-
-	certFP := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
-	if subtle.ConstantTimeCompare(t.ExpectedCertFP, certFP[:]) != 1 {
-		return nil, ErrCertMismatch
-	}
-
-	return resp, err
+	return &Response{
+		Status:     r.Status,
+		StatusCode: r.StatusCode,
+		Headers:    r.Header,
+		Body:       body,
+	}, nil
 }

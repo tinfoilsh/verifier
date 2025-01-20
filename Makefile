@@ -6,3 +6,7 @@ build:
 	docker build -t tinfoil-verifier-builder .
 	docker run --rm -v $(shell pwd):/src tinfoil-verifier-builder
 	#cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" .
+
+ios-bind:
+	go get golang.org/x/mobile/cmd/gomobile
+	gomobile bind -target=ios -o TinfoilVerifier.xcframework github.com/tinfoilanalytics/verifier/pkg/client
