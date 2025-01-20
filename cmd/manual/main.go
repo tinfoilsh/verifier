@@ -53,28 +53,26 @@ func main() {
 		log.Fatalf("Failed to verify source measurements: %v", err)
 	}
 
-	if *enclaveHost != "" {
-		log.Printf("Fetching attestation doc from %s", *enclaveHost)
-		remoteAttestation, enclaveCertFP, err := attestation.Fetch(*enclaveHost)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Enclave TLS public key fingerprint: %x", enclaveCertFP)
+	log.Printf("Fetching attestation doc from %s", *enclaveHost)
+	remoteAttestation, enclaveCertFP, err := attestation.Fetch(*enclaveHost)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Enclave TLS public key fingerprint: %x", enclaveCertFP)
 
-		log.Println("Verifying enclave measurements")
-		var attestedCertFP []byte
-		enclaveMeasurements, attestedCertFP, err = remoteAttestation.Verify()
-		if err != nil {
-			log.Fatalf("Failed to parse enclave attestation doc: %v", err)
-		}
+	log.Println("Verifying enclave measurements")
+	var attestedCertFP []byte
+	enclaveMeasurements, attestedCertFP, err = remoteAttestation.Verify()
+	if err != nil {
+		log.Fatalf("Failed to parse enclave attestation doc: %v", err)
+	}
 
-		log.Printf("TLS certificate fingerprint: %x", attestedCertFP)
+	log.Printf("TLS certificate fingerprint: %x", attestedCertFP)
 
-		if !bytes.Equal(enclaveCertFP, attestedCertFP) {
-			log.Fatalf("Certificate fingerprint mismatch")
-		} else {
-			log.Println("Certificate fingerprint match")
-		}
+	if !bytes.Equal(enclaveCertFP, attestedCertFP) {
+		log.Fatalf("Certificate fingerprint mismatch")
+	} else {
+		log.Println("Certificate fingerprint match")
 	}
 
 	if codeMeasurements != nil && enclaveMeasurements != nil {
