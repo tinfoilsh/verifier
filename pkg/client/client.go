@@ -96,7 +96,18 @@ func (s *SecureClient) HTTPClient() (*http.Client, error) {
 }
 
 func (s *SecureClient) makeRequest(req *http.Request) (*Response, error) {
-	resp, err := s.HTTPClient().Do(req)
+	httpClient, err := s.HTTPClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// If URL doesn't start with anything, assume it's a relative path and set the base URL
+	if req.URL.Host == "" {
+		req.URL.Scheme = "https"
+		req.URL.Host = s.enclave
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
