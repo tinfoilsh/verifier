@@ -82,10 +82,17 @@ func (s *SecureClient) VerificationState() *EnclaveState {
 }
 
 // HTTPClient returns an HTTP client that only accepts TLS connections to the verified enclave
-func (s *SecureClient) HTTPClient() *http.Client {
+func (s *SecureClient) HTTPClient() (*http.Client, error) {
+	if s.verifiedState == nil {
+		_, err := s.Verify()
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify enclave: %v", err)
+		}
+	}
+
 	return &http.Client{
 		Transport: &TLSBoundRoundTripper{s.verifiedState.CertFingerprint},
-	}
+	}, nil
 }
 
 func (s *SecureClient) makeRequest(req *http.Request) (*Response, error) {
@@ -108,7 +115,7 @@ func (s *SecureClient) Post(url string, headers map[string]string, body []byte) 
 	return s.makeRequest(req)
 }
 
-// Get makes a HTTP GET request
+// Get makes an HTTP GET request
 func (s *SecureClient) Get(url string, headers map[string]string) (*Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
