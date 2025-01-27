@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/verify"
+
+	"github.com/tinfoilanalytics/verifier/pkg/util"
 )
 
 func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
@@ -16,6 +18,7 @@ func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
 	}
 
 	opts := verify.DefaultOptions()
+	opts.Getter = util.NewFetcher()
 	familyID := uint32(0x19)      // zen3zen4Family
 	model := uint32((1 << 4) | 1) // genoaModel = 0x11
 	cpuID := abi.FmsToCpuid1Eax(byte(familyID), byte(model), 0) & abi.CpuidProductMask

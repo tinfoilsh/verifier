@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 )
@@ -15,6 +17,8 @@ type PredicateType string
 const (
 	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
 	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/snp-sev-guest/v1"
+
+	attestationEndpoint = "/.well-known/tinfoil-attestation"
 )
 
 var (
@@ -77,4 +81,24 @@ func VerifyAttestationJSON(j []byte) (*Measurement, []byte, error) {
 func CertFP(c tls.ConnectionState) []byte {
 	fp := sha256.Sum256(c.PeerCertificates[0].Raw)
 	return fp[:]
+}
+
+// Fetch retrieves the attestation document from a given enclave hostname
+func Fetch(host string) (*Document, []byte, error) {
+	var u url.URL
+	u.Host = host
+	u.Scheme = "https"
+	u.Path = attestationEndpoint
+
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	var doc Document
+	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, nil, err
+	}
+	return &doc, CertFP(*resp.TLS), nil
 }

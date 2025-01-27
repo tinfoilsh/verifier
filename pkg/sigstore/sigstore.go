@@ -12,10 +12,11 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"github.com/tinfoilanalytics/verifier/pkg/attestation"
+	"github.com/tinfoilanalytics/verifier/pkg/util"
 )
 
 const (
-	OidcIssuer = "https://token.actions.githubusercontent.com"
+	oidcIssuer = "https://token.actions.githubusercontent.com"
 )
 
 // VerifyMeasurementAttestation verifies the attested measurements of an EIF measurement
@@ -46,7 +47,7 @@ func VerifyMeasurementAttestation(
 	}
 
 	certID, err := verify.NewShortCertificateIdentity(
-		OidcIssuer,
+		oidcIssuer,
 		"",
 		"",
 		// TODO: Can we pin this to latest without fetching the latest release?
@@ -91,7 +92,8 @@ func VerifyMeasurementAttestation(
 func FetchTrustRoot() ([]byte, error) {
 	tufOpts := tuf.
 		DefaultOptions().
-		WithDisableLocalCache()
+		WithDisableLocalCache().
+		WithFetcher(util.NewFetcher())
 	client, err := tuf.New(tufOpts)
 	if err != nil {
 		return nil, err
