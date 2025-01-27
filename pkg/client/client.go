@@ -40,7 +40,12 @@ func (s *SecureClient) Verify() (*EnclaveState, error) {
 		return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
 	}
 
-	codeMeasurements, err := sigstore.VerifyAttestation(sigstoreBundle, eifHash, s.repo, nil)
+	trustRootJSON, err := sigstore.FetchTrustRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch trust root: %v", err)
+	}
+
+	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, eifHash, s.repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
 	}

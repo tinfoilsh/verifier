@@ -12,7 +12,6 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"github.com/tinfoilanalytics/verifier/pkg/attestation"
-	"github.com/tinfoilanalytics/verifier/pkg/util"
 )
 
 const (
@@ -23,8 +22,8 @@ const (
 func FetchTrustRoot() ([]byte, error) {
 	tufOpts := tuf.
 		DefaultOptions().
-		WithDisableLocalCache().
-		WithFetcher(util.NewFetcher())
+		WithDisableLocalCache()
+	//WithFetcher(util.NewFetcher())
 	client, err := tuf.New(tufOpts)
 	if err != nil {
 		return nil, err
@@ -36,18 +35,9 @@ func FetchTrustRoot() ([]byte, error) {
 // VerifyAttestation verifies the attested measurements of an enclave image
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
 func VerifyAttestation(
-	bundleJSON []byte,
+	trustRootJSON, bundleJSON []byte,
 	hexDigest, repo string,
-	trustRootJSON []byte,
 ) (*attestation.Measurement, error) {
-	if trustRootJSON == nil {
-		var err error
-		trustRootJSON, err = FetchTrustRoot()
-		if err != nil {
-			return nil, fmt.Errorf("fetching trust root: %w", err)
-		}
-	}
-
 	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
 	if err != nil {
 		return nil, fmt.Errorf("parsing trust root: %w", err)
