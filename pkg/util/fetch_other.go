@@ -4,6 +4,7 @@
 package util
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -12,6 +13,9 @@ func get(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode > 299 {
+		return nil, fmt.Errorf("HTTP GET %s: %s", url, resp.Status)
 	}
 	return io.ReadAll(resp.Body)
 }
