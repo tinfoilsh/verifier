@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/blocky/nitrite v0.0.1
+	github.com/google/go-sev-guest v0.0.0-00010101000000-000000000000
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/sigstore-go v0.6.2
 	github.com/stretchr/testify v1.9.0
@@ -35,6 +36,7 @@ require (
 	github.com/go-openapi/validate v0.24.0 // indirect
 	github.com/google/certificate-transparency-go v1.2.1 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
+	github.com/google/logger v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
@@ -94,3 +96,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 )
+
+replace github.com/google/go-sev-guest => github.com/jraman567/go-sev-guest v0.0.0-20250117204014-6339110611c9

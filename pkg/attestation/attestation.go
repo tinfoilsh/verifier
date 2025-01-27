@@ -14,6 +14,7 @@ type PredicateType string
 
 const (
 	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
+	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/snp-sev-guest/v1"
 )
 
 var (
@@ -54,6 +55,8 @@ func (d *Document) Verify() (*Measurement, []byte, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
+	case SevGuestV1:
+		return verifySevAttestation(d.Body)
 	default:
 		return nil, nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
