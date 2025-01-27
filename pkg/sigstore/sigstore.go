@@ -38,9 +38,9 @@ func fetchTrustRoot() (*root.TrustedRoot, error) {
 	return root.NewTrustedRootFromJSON(trustRootJSON)
 }
 
-// VerifyMeasurementAttestation verifies the attested measurements of an EIF measurement
+// VerifyAttestation verifies the attested measurements of an enclave image
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyMeasurementAttestation(
+func VerifyAttestation(
 	bundleJSON []byte,
 	hexDigest, repo string,
 ) (*attestation.Measurement, error) {
