@@ -19,8 +19,8 @@ const (
 	oidcIssuer = "https://token.actions.githubusercontent.com"
 )
 
-// fetchTrustRoot fetches the trust root from the Sigstore TUF repo
-func fetchTrustRoot() (*root.TrustedRoot, error) {
+// FetchTrustRoot fetches the trust root from the Sigstore TUF repo
+func FetchTrustRoot() ([]byte, error) {
 	tufOpts := tuf.
 		DefaultOptions().
 		WithDisableLocalCache().
@@ -30,12 +30,7 @@ func fetchTrustRoot() (*root.TrustedRoot, error) {
 		return nil, err
 	}
 
-	trustRootJSON, err := client.GetTarget("trusted_root.json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get trusted_root.json: %w", err)
-	}
-
-	return root.NewTrustedRootFromJSON(trustRootJSON)
+	return client.GetTarget("trusted_root.json")
 }
 
 // VerifyAttestation verifies the attested measurements of an enclave image
@@ -43,10 +38,19 @@ func fetchTrustRoot() (*root.TrustedRoot, error) {
 func VerifyAttestation(
 	bundleJSON []byte,
 	hexDigest, repo string,
+	trustRootJSON []byte,
 ) (*attestation.Measurement, error) {
-	trustRoot, err := fetchTrustRoot()
+	if trustRootJSON == nil {
+		var err error
+		trustRootJSON, err = FetchTrustRoot()
+		if err != nil {
+			return nil, fmt.Errorf("fetching trust root: %w", err)
+		}
+	}
+
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
 	if err != nil {
-		return nil, fmt.Errorf("fetching trust root: %w", err)
+		return nil, fmt.Errorf("parsing trust root: %w", err)
 	}
 
 	var b bundle.Bundle
