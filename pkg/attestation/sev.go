@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/go-sev-guest/abi"
+	sevpb "github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/verify"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/tinfoilanalytics/verifier/pkg/util"
 )
@@ -19,10 +21,11 @@ func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
 
 	opts := verify.DefaultOptions()
 	opts.Getter = util.NewFetcher()
-	familyID := uint32(0x19)      // zen3zen4Family
-	model := uint32((1 << 4) | 1) // genoaModel = 0x11
-	cpuID := abi.FmsToCpuid1Eax(byte(familyID), byte(model), 0) & abi.CpuidProductMask
-	opts.Product = abi.SevProductFromCpuid1Eax(cpuID)
+	opts.Product = &sevpb.SevProduct{
+		Name:            sevpb.SevProduct_SEV_PRODUCT_GENOA,
+		MachineStepping: &wrapperspb.UInt32Value{Value: uint32(0)},
+	}
+
 	if err := verify.RawSnpReport(attDocBytes, opts); err != nil {
 		return nil, nil, err
 	}
