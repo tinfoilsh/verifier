@@ -19,15 +19,34 @@ const (
 	oidcIssuer = "https://token.actions.githubusercontent.com"
 )
 
+// fetchTrustRoot fetches the trust root from the Sigstore TUF repo
+func fetchTrustRoot() (*root.TrustedRoot, error) {
+	tufOpts := tuf.
+		DefaultOptions().
+		WithDisableLocalCache().
+		WithFetcher(util.NewFetcher())
+	client, err := tuf.New(tufOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	trustRootJSON, err := client.GetTarget("trusted_root.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trusted_root.json: %w", err)
+	}
+
+	return root.NewTrustedRootFromJSON(trustRootJSON)
+}
+
 // VerifyMeasurementAttestation verifies the attested measurements of an EIF measurement
 // against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
 func VerifyMeasurementAttestation(
-	trustedRootJSON, bundleJSON []byte,
+	bundleJSON []byte,
 	hexDigest, repo string,
 ) (*attestation.Measurement, error) {
-	trustedMaterial, err := root.NewTrustedRootFromJSON(trustedRootJSON)
+	trustRoot, err := fetchTrustRoot()
 	if err != nil {
-		return nil, fmt.Errorf("parsing trusted root: %w", err)
+		return nil, fmt.Errorf("fetching trust root: %w", err)
 	}
 
 	var b bundle.Bundle
@@ -37,7 +56,7 @@ func VerifyMeasurementAttestation(
 	}
 
 	verifier, err := verify.NewSignedEntityVerifier(
-		trustedMaterial,
+		trustRoot,
 		verify.WithSignedCertificateTimestamps(1),
 		verify.WithTransparencyLog(1),
 		verify.WithObserverTimestamps(1),
@@ -86,18 +105,4 @@ func VerifyMeasurementAttestation(
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
 	}
-}
-
-// FetchTrustRoot fetches the trust root from the Sigstore TUF repo
-func FetchTrustRoot() ([]byte, error) {
-	tufOpts := tuf.
-		DefaultOptions().
-		WithDisableLocalCache().
-		WithFetcher(util.NewFetcher())
-	client, err := tuf.New(tufOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.GetTarget("trusted_root.json")
 }
