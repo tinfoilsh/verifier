@@ -26,13 +26,13 @@ func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
 		MachineStepping: &wrapperspb.UInt32Value{Value: uint32(0)},
 	}
 
-	if err := verify.RawSnpReport(attDocBytes, opts); err != nil {
-		return nil, nil, err
-	}
-
 	parsedReport, err := abi.ReportToProto(attDocBytes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse report: %v", err)
+	}
+
+	if err := verify.SnpReport(parsedReport, opts); err != nil {
+		return nil, nil, err
 	}
 
 	cfp, err := hex.DecodeString(string(parsedReport.ReportData))
