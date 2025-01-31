@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tinfoilanalytics/verifier/pkg/attestation"
-	"github.com/tinfoilanalytics/verifier/pkg/github"
-	"github.com/tinfoilanalytics/verifier/pkg/sigstore"
+	"github.com/tinfoilanalytics/verifier/attestation"
+	"github.com/tinfoilanalytics/verifier/github"
+	"github.com/tinfoilanalytics/verifier/sigstore"
 )
 
 type EnclaveState struct {

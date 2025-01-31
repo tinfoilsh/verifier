@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-sev-guest/verify"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/tinfoilanalytics/verifier/pkg/util"
+	"github.com/tinfoilanalytics/verifier/util"
 )
 
 func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
