@@ -64,7 +64,7 @@ func VerifyAttestation(
 		"",
 		"",
 		// TODO: Can we pin this to latest without fetching the latest release?
-		"^https://github.com/"+repo+"/.github/workflows/release.yml@refs/tags/*",
+		"^https://github.com/"+repo+"/.github/workflows/.*@refs/tags/*",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating certificate identity: %w", err)
@@ -95,6 +95,11 @@ func VerifyAttestation(
 				predicateFields["PCR1"].GetStringValue(),
 				predicateFields["PCR2"].GetStringValue(),
 			},
+		}, nil
+	case attestation.SevGuestV1:
+		return &attestation.Measurement{
+			Type:      measurementType,
+			Registers: []string{predicateFields["measurement"].GetStringValue()},
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)

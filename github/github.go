@@ -3,11 +3,13 @@ package github
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
-// FetchLatestRelease gets the latest release and EIF hash of a repo
+// FetchLatestRelease gets the latest release and attestation digest of a repo
 func FetchLatestRelease(repo string) (string, string, error) {
 	url := "https://api.github.com/repos/" + repo + "/releases/latest"
 	releaseResponse, err := http.Get(url)
@@ -26,10 +28,27 @@ func FetchLatestRelease(repo string) (string, string, error) {
 		return "", "", err
 	}
 
+	// Backwards compatibility for old EIF releases
 	eifRegex := regexp.MustCompile(`EIF hash: ([a-fA-F0-9]{64})`)
-	eifHash := eifRegex.FindStringSubmatch(responseJSON.Body)[1]
+	matches := eifRegex.FindStringSubmatch(responseJSON.Body)
+	if len(matches) > 1 {
+		return responseJSON.TagName, matches[1], nil
+	}
 
-	return responseJSON.TagName, eifHash, nil
+	url = fmt.Sprintf(`https://github.com/tinfoilanalytics/provably-private-deepseek-r1/releases/download/%s/tinfoil.hash`, responseJSON.TagName)
+	digestResp, err := http.Get(url)
+	if err != nil {
+		return "", "", err
+	}
+	if digestResp.StatusCode != 200 {
+		return "", "", fmt.Errorf("failed to fetch attestation digest: %s", digestResp.Status)
+	}
+	digest, err := io.ReadAll(digestResp.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	return responseJSON.TagName, strings.TrimSpace(string(digest)), nil
 }
 
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
