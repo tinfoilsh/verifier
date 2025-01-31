@@ -7,24 +7,23 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/tinfoilanalytics/verifier/util"
 )
 
 // FetchLatestRelease gets the latest release and attestation digest of a repo
 func FetchLatestRelease(repo string) (string, string, error) {
 	url := "https://api.github.com/repos/" + repo + "/releases/latest"
-	releaseResponse, err := http.Get(url)
+	releaseResponse, err := util.NewFetcher().Get(url)
 	if err != nil {
 		return "", "", err
-	}
-	if releaseResponse.StatusCode != 200 {
-		return "", "", fmt.Errorf("failed to fetch latest release: %s", releaseResponse.Status)
 	}
 
 	var responseJSON struct {
 		TagName string `json:"tag_name"`
 		Body    string `json:"body"`
 	}
-	if err := json.NewDecoder(releaseResponse.Body).Decode(&responseJSON); err != nil {
+	if err := json.Unmarshal(releaseResponse, &responseJSON); err != nil {
 		return "", "", err
 	}
 
@@ -54,12 +53,9 @@ func FetchLatestRelease(repo string) (string, string, error) {
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
 func FetchAttestationBundle(repo, digest string) ([]byte, error) {
 	url := "https://api.github.com/repos/" + repo + "/attestations/sha256:" + digest
-	bundleResponse, err := http.Get(url)
+	bundleResponse, err := util.NewFetcher().Get(url)
 	if err != nil {
 		return nil, err
-	}
-	if bundleResponse.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to fetch sigstore bundle: %s", bundleResponse.Status)
 	}
 
 	var responseJSON struct {
@@ -67,7 +63,8 @@ func FetchAttestationBundle(repo, digest string) ([]byte, error) {
 			Bundle json.RawMessage `json:"bundle"`
 		} `json:"attestations"`
 	}
-	if err := json.NewDecoder(bundleResponse.Body).Decode(&responseJSON); err != nil {
+
+	if err := json.Unmarshal(bundleResponse, &responseJSON); err != nil {
 		return nil, err
 	}
 
