@@ -5,6 +5,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 
 	fetch "marwan.io/wasm-fetch"
 )
