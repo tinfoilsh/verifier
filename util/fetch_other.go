@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func get(url string) ([]byte, error) {
+func Get(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

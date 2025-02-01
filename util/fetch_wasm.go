@@ -10,7 +10,7 @@ import (
 	fetch "marwan.io/wasm-fetch"
 )
 
-func get(url string) ([]byte, error) {
+func Get(url string) ([]byte, error) {
 	resp, err := fetch.Fetch(url, &fetch.Opts{
 		Method: fetch.MethodGet,
 		Signal: context.Background(),
