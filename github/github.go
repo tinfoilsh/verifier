@@ -34,7 +34,7 @@ func FetchLatestRelease(repo string) (string, string, error) {
 		return responseJSON.TagName, matches[1], nil
 	}
 
-	url = fmt.Sprintf(`https://github.com/tinfoilanalytics/provably-private-deepseek-r1/releases/download/%s/tinfoil.hash`, responseJSON.TagName)
+	url = fmt.Sprintf(`https://github.com/%s/releases/download/%s/tinfoil.hash`, repo, responseJSON.TagName)
 	digestResp, err := http.Get(url)
 	if err != nil {
 		return "", "", err
