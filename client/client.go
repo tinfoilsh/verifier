@@ -12,7 +12,7 @@ import (
 
 type EnclaveState struct {
 	CertFingerprint []byte
-	EIFHash         string
+	Digest          string
 }
 
 type SecureClient struct {
@@ -30,12 +30,12 @@ func NewSecureClient(enclave, repo string) *SecureClient {
 
 // Verify verifies the enclave against the latest code release
 func (s *SecureClient) Verify() (*EnclaveState, error) {
-	_, eifHash, err := github.FetchLatestRelease(s.repo)
+	_, digest, err := github.FetchLatestRelease(s.repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch latest release: %v", err)
 	}
 
-	sigstoreBundle, err := github.FetchAttestationBundle(s.repo, eifHash)
+	sigstoreBundle, err := github.FetchAttestationBundle(s.repo, digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
 	}
@@ -45,7 +45,7 @@ func (s *SecureClient) Verify() (*EnclaveState, error) {
 		return nil, fmt.Errorf("failed to fetch trust root: %v", err)
 	}
 
-	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, eifHash, s.repo)
+	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, digest, s.repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
 	}
@@ -67,7 +67,7 @@ func (s *SecureClient) Verify() (*EnclaveState, error) {
 	if err == nil {
 		s.verifiedState = &EnclaveState{
 			CertFingerprint: attestedCertFP,
-			EIFHash:         eifHash,
+			Digest:          digest,
 		}
 	}
 	return s.verifiedState, err
