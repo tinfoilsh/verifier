@@ -4,13 +4,27 @@ Tinfoil's client-side portable remote attestation verifier and secure HTTP clien
 
 [![Build Status](https://github.com/tinfoilanalytics/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilanalytics/verifier/actions)
 
-## JavaScript Verifier
+## Quick Start: Use the Secure HTTP Client
 
-This verifier is written in Go but is then compiled to a WebAssembly module.
-See [verifier-js](https://github.com/tinfoilanalytics/verifier-js) for details. 
+```go
+// Create a client for a specific enclave and code repository
+client := client.NewSecureClient("enclave.example.com", "org/repo")
 
+// Make HTTP requests - verification happens automatically
+resp, err := client.Get("/api/data", nil)
+if err != nil {
+    return fmt.Errorf("request failed: %w", err)
+}
 
-## Organization
+// POST with headers and body
+headers := map[string]string{"Content-Type": "application/json"}
+body := []byte(`{"key": "value"}`)
+resp, err := client.Post("/api/submit", headers, body)
+```
+
+See [Secure HTTP Client](#secure-http-client) for examples of how to use the secure client.
+
+## Code Organization
 
 | **Directory**                    |                                                                |
 | :------------------------------- | :------------------------------------------------------------- |
@@ -153,51 +167,12 @@ The verifier provides a secure HTTP client that ensures all requests are made to
 - Verifies the enclave's attestation before making requests
 - Pins TLS connections to the attested certificate
 
-### Quick Start
-
-```go
-// Create a client for a specific enclave and code repository
-client := client.NewSecureClient("enclave.example.com", "org/repo")
-
-// Make HTTP requests - verification happens automatically
-resp, err := client.Get("/api/data", nil)
-if err != nil {
-    return fmt.Errorf("request failed: %w", err)
-}
-
-// POST with headers and body
-headers := map[string]string{"Content-Type": "application/json"}
-body := []byte(`{"key": "value"}`)
-resp, err := client.Post("/api/submit", headers, body)
-```
-
-### How It Works
-
-1. **Initial Verification**
-   - Fetches latest code release information from GitHub
-   - Verifies the enclave's attestation matches the released code
-   - Stores the verified certificate fingerprint
-
-2. **Request Security**
-   - All requests use TLS with certificate fingerprint verification
-   - Verifies every response's certificate matches the attestation
-   - Automatically handles relative URLs with the enclave's domain
-
-#### Error Handling
-
-```go
-ErrNoTLS              // Connection wasn't TLS
-ErrCertMismatch       // Certificate didn't match attestation
-ErrNoValidCertificate // No verified certificate available
-```
-
 ### Security Properties
 
 | Property | Description |
 |----------|-------------|
 | **Code Verification** | Ensures enclave runs the expected code version |
 | **Connection Security** | TLS with certificate pinning prevents MITM attacks |
-| **Automatic Re-verification** | Verifies attestation before first request |
 | **Request Isolation** | Each client connects to exactly one enclave |
 
 ### Usage Examples
@@ -232,6 +207,12 @@ if err != nil {
     return fmt.Errorf("failed to get HTTP client: %w", err)
 }
 ```
+
+
+## JavaScript Verifier
+
+This verifier is written in Go but is then compiled to a WebAssembly module.
+See [verifier-js](https://github.com/tinfoilanalytics/verifier-js) for details. 
 
 
 # Auditing the Verifier
