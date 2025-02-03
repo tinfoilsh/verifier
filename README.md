@@ -237,6 +237,7 @@ if err != nil {
 # Auditing the Verifier
 
 1. Audit the pinned certificate [/attestation/genoa_cert_chain.pem](/attestation/genoa_cert_chain.pem)
+    - Note: the certificate is taken from [AMD's KDS](https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain)
 2. Audit the attestation verification code in [/attestation/attestation.go](/attestation/attestation.go)
    - Verify certificate chain validation
    - Inspect the [/attestation/sev.go](/attestation/sev.go) or [/attestation/nitro.go](/attestation/nitro.go)
