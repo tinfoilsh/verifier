@@ -9,7 +9,8 @@ require (
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/sigstore-go v0.6.2
 	github.com/stretchr/testify v1.9.0
-	github.com/theupdateframework/go-tuf/v2 v2.0.0
+	github.com/theupdateframework/go-tuf/v2 v2.0.1
+	google.golang.org/protobuf v1.34.2
 	marwan.io/wasm-fetch v0.1.0
 )
 
@@ -92,7 +93,6 @@ require (
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240520151616-dc85e6b867a5 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
