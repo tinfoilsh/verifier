@@ -31,8 +31,12 @@ type Measurement struct {
 	Registers []string
 }
 
-// Fingerprint computes the SHA-256 hash of all measurements
+// Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
 func (m *Measurement) Fingerprint() string {
+	if len(m.Registers) == 1 {
+		return m.Registers[0]
+	}
+
 	all := string(m.Type) + strings.Join(m.Registers, "")
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
 }

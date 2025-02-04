@@ -13,6 +13,7 @@ import (
 type EnclaveState struct {
 	CertFingerprint []byte
 	Digest          string
+	Measurement     string
 }
 
 type SecureClient struct {
@@ -68,6 +69,7 @@ func (s *SecureClient) Verify() (*EnclaveState, error) {
 		s.verifiedState = &EnclaveState{
 			CertFingerprint: attestedCertFP,
 			Digest:          digest,
+			Measurement:     codeMeasurements.Fingerprint(),
 		}
 	}
 	return s.verifiedState, err
