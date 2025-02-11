@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	protobundle "github.com/sigstore/protobuf-specs/gen/pb-go/bundle/v1"
 	"github.com/sigstore/sigstore-go/pkg/bundle"
@@ -70,13 +71,30 @@ func VerifyAttestation(
 		return nil, fmt.Errorf("creating certificate identity: %w", err)
 	}
 
+	//
+	// WARNING: This is a temporary hack to get around our GitHub repo migration from tinfoilanalytics to tinfoilsh.
+	//
+	fallbackCertID, err := verify.NewShortCertificateIdentity(
+		oidcIssuer,
+		"",
+		"",
+		"^https://github.com/"+strings.ReplaceAll(repo, "tinfoilsh", "tinfoilanalytics")+"/.github/workflows/.*@refs/tags/*",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating certificate identity: %w", err)
+	}
+
 	digest, err := hex.DecodeString(hexDigest)
 	if err != nil {
 		return nil, fmt.Errorf("decoding hex digest: %w", err)
 	}
-	result, err := verifier.Verify(&b, verify.NewPolicy(
-		verify.WithArtifactDigest("sha256", digest),
-		verify.WithCertificateIdentity(certID)),
+	result, err := verifier.Verify(
+		&b,
+		verify.NewPolicy(
+			verify.WithArtifactDigest("sha256", digest),
+			verify.WithCertificateIdentity(certID),
+			verify.WithCertificateIdentity(fallbackCertID),
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("verifying: %w", err)
