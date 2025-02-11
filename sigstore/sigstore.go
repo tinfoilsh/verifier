@@ -11,7 +11,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
-	"github.com/tinfoilanalytics/verifier/attestation"
+	"github.com/tinfoilsh/verifier/attestation"
 )
 
 const (

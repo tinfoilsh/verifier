@@ -2,7 +2,7 @@
 
 Tinfoil's client-side portable remote attestation verifier and secure HTTP client.
 
-[![Build Status](https://github.com/tinfoilanalytics/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilanalytics/verifier/actions)
+[![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
 ## Quick Start: Use the Secure HTTP Client
 
@@ -212,7 +212,7 @@ if err != nil {
 ## JavaScript Verifier
 
 This verifier is written in Go but is then compiled to a WebAssembly module.
-See [verifier-js](https://github.com/tinfoilanalytics/verifier-js) for details. 
+See [verifier-js](https://github.com/tinfoilsh/verifier-js) for details. 
 
 
 # Auditing the Verifier

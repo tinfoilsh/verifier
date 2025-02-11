@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tinfoilanalytics/verifier/util"
+	"github.com/tinfoilsh/verifier/util"
 )
 
 // FetchLatestRelease gets the latest release and attestation digest of a repo

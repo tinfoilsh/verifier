@@ -1,4 +1,4 @@
-module github.com/tinfoilanalytics/verifier
+module github.com/tinfoilsh/verifier
 
 go 1.23.2
 

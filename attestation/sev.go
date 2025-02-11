@@ -14,7 +14,7 @@ import (
 	"github.com/google/go-sev-guest/verify/trust"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/tinfoilanalytics/verifier/util"
+	"github.com/tinfoilsh/verifier/util"
 )
 
 // https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
