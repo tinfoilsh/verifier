@@ -13,14 +13,14 @@ var (
 
 // verifyNitroAttestation decodes a base64 encoded attestation document,
 // verifies it against the AWS root, and returns the inner measurements and user data.
-func verifyNitroAttestation(attestationDoc string) (*Measurement, []byte, error) {
+func verifyNitroAttestation(attestationDoc string) (*Verification, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	attestedResult, err := nitrite.Verify(attDocBytes, NitroEnclaveVerifierOpts)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	pcrs := attestedResult.Document.PCRs
@@ -33,5 +33,8 @@ func verifyNitroAttestation(attestationDoc string) (*Measurement, []byte, error)
 		},
 	}
 
-	return measurement, attestedResult.Document.UserData, nil
+	return &Verification{
+		Measurement: measurement,
+		CertFP:      attestedResult.Document.UserData,
+	}, nil
 }

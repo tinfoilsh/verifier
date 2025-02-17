@@ -46,10 +46,10 @@ var (
 	_ trust.HTTPSGetter = &getter{}
 )
 
-func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
+func verifySevAttestation(attestationDoc string) (*Verification, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	opts := verify.DefaultOptions()
@@ -61,16 +61,16 @@ func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
 
 	parsedReport, err := abi.ReportToProto(attDocBytes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse report: %v", err)
+		return nil, fmt.Errorf("failed to parse report: %v", err)
 	}
 
 	if err := verify.SnpReport(parsedReport, opts); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	cfp, err := hex.DecodeString(string(parsedReport.ReportData))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to decode certificate fingerprint: %v", err)
+		return nil, fmt.Errorf("failed to decode certificate fingerprint: %v", err)
 	}
 
 	measurement := &Measurement{
@@ -80,5 +80,8 @@ func verifySevAttestation(attestationDoc string) (*Measurement, []byte, error) {
 		},
 	}
 
-	return measurement, cfp, nil
+	return &Verification{
+		Measurement: measurement,
+		CertFP:      cfp,
+	}, nil
 }

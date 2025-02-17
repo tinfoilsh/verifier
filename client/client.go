@@ -61,15 +61,15 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch enclave measurements: %v", err)
 	}
-	enclaveMeasurements, attestedCertFP, err := enclaveAttestation.Verify()
+	verification, err := enclaveAttestation.Verify()
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
 	}
 
-	err = codeMeasurements.Equals(enclaveMeasurements)
+	err = codeMeasurements.Equals(verification.Measurement)
 	if err == nil {
 		s.groundTruth = &GroundTruth{
-			CertFingerprint: attestedCertFP,
+			CertFingerprint: verification.CertFP,
 			Digest:          digest,
 			Measurement:     codeMeasurements.Fingerprint(),
 		}

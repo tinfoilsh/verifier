@@ -31,6 +31,11 @@ type Measurement struct {
 	Registers []string
 }
 
+type Verification struct {
+	Measurement *Measurement
+	CertFP      []byte
+}
+
 // Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
 func (m *Measurement) Fingerprint() string {
 	if len(m.Registers) == 1 {
@@ -59,23 +64,23 @@ type Document struct {
 }
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
-func (d *Document) Verify() (*Measurement, []byte, error) {
+func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	case SevGuestV1:
 		return verifySevAttestation(d.Body)
 	default:
-		return nil, nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
+		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
 }
 
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
-func VerifyAttestationJSON(j []byte) (*Measurement, []byte, error) {
+func VerifyAttestationJSON(j []byte) (*Verification, error) {
 	var doc Document
 	err := json.Unmarshal(j, &doc)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return doc.Verify()
