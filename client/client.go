@@ -51,17 +51,13 @@ func (s *SecureClient) Verify() (*EnclaveState, error) {
 		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
 	}
 
-	enclaveAttestation, enclaveCertFP, err := attestation.Fetch(s.enclave)
+	enclaveAttestation, err := attestation.Fetch(s.enclave)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch enclave measurements: %v", err)
 	}
 	enclaveMeasurements, attestedCertFP, err := enclaveAttestation.Verify()
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
-	}
-
-	if !bytes.Equal(enclaveCertFP, attestedCertFP) {
-		return nil, ErrCertMismatch
 	}
 
 	err = codeMeasurements.Equals(enclaveMeasurements)

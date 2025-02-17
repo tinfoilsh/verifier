@@ -88,7 +88,7 @@ func CertFP(c tls.ConnectionState) []byte {
 }
 
 // Fetch retrieves the attestation document from a given enclave hostname
-func Fetch(host string) (*Document, []byte, error) {
+func Fetch(host string) (*Document, error) {
 	var u url.URL
 	u.Host = host
 	u.Scheme = "https"
@@ -96,13 +96,13 @@ func Fetch(host string) (*Document, []byte, error) {
 
 	resp, err := http.Get(u.String())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var doc Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return &doc, CertFP(*resp.TLS), nil
+	return &doc, nil
 }
