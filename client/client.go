@@ -37,7 +37,7 @@ func (s *SecureClient) GroundTruth() *GroundTruth {
 
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
 func (s *SecureClient) Verify() (*GroundTruth, error) {
-	_, digest, err := github.FetchLatestRelease(s.repo)
+	digest, err := github.FetchLatestDigest(s.repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch latest release: %v", err)
 	}
