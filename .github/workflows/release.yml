@@ -22,9 +22,19 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Set up xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up gomobile
+        run: |
+          go get golang.org/x/mobile/cmd/gomobile@latest
+          go get golang.org/x/mobile/cmd/gobind@latest
+          go install golang.org/x/mobile@latest
+
       - name: gomobile bind
         run: |
-          go get golang.org/x/mobile/cmd/gomobile
           gomobile bind -target=ios -o TinfoilVerifier.xcframework $(go list ./... | xargs)
 
       - name: Release
