@@ -29,9 +29,8 @@ jobs:
 
       - name: Set up gomobile
         run: |
-          go get golang.org/x/mobile/cmd/gomobile@latest
-          go get golang.org/x/mobile/cmd/gobind@latest
-          go install golang.org/x/mobile@latest
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
 
       - name: gomobile bind
         run: |
