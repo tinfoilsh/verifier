@@ -22,8 +22,9 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run
+      - name: gomobile bind
         run: |
+          go get golang.org/x/mobile/cmd/gomobile
           gomobile bind -target=ios -o TinfoilVerifier.xcframework $(go list ./... | xargs)
 
       - name: Release
