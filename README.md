@@ -1,28 +1,10 @@
 # Tinfoil Verifier
 
-Tinfoil's client-side portable remote attestation verifier and secure HTTP client.
+Tinfoil's client-side portable remote attestation verifier.
 
 [![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
-## Quick Start: Use the Secure HTTP Client
-
-```go
-// Create a client for a specific enclave and code repository
-client := client.NewSecureClient("enclave.example.com", "org/repo")
-
-// Make HTTP requests - verification happens automatically
-resp, err := client.Get("/api/data", nil)
-if err != nil {
-    return fmt.Errorf("request failed: %w", err)
-}
-
-// POST with headers and body
-headers := map[string]string{"Content-Type": "application/json"}
-body := []byte(`{"key": "value"}`)
-resp, err := client.Post("/api/submit", headers, body)
-```
-
-See [Secure HTTP Client](#secure-http-client) for examples of how to use the secure client.
+See [the Tinfoil Go client](http://github.com/tinfoilsh/tinfoil-go) for usage examples. 
 
 ## Code Organization
 
@@ -70,8 +52,6 @@ if err != nil {
     return fmt.Errorf("attestation verification failed: %w", err)
 }
 ```
-
-See [Secure HTTP Client](#secure-http-client) for examples of how to use the secure client.
 
 > **Remark:** The certificate fingerprint binds the HTTPS connection to the attested enclave, preventing MITM attacks. This binding ensures you're only connecting to an endpoint whose TLS key material was generated within the verified enclave. An attacker cannot intercept and proxy the connection since they cannot access the private key material.
 
@@ -160,59 +140,6 @@ The GitHub integration supports:
 - Retrieving attestation digests from release assets
 - Downloading Sigstore attestation bundles for verification
 - Backwards compatibility with legacy EIF hash formats
-
-# Secure HTTP Client
-
-The verifier provides a secure HTTP client that ensures all requests are made to a verified enclave. This client:
-- Verifies the enclave's attestation before making requests
-- Pins TLS connections to the attested certificate
-
-### Security Properties
-
-| Property | Description |
-|----------|-------------|
-| **Code Verification** | Ensures enclave runs the expected code version |
-| **Connection Security** | TLS with certificate pinning prevents MITM attacks |
-| **Request Isolation** | Each client connects to exactly one enclave |
-
-### Usage Examples
-
-```go
-// 1. Create a client
-client := client.NewSecureClient(
-    "enclave.example.com",  // Enclave hostname
-    "org/repo",            // GitHub repository
-)
-
-// 2. Manual verification (optional)
-state, err := client.Verify()
-if err != nil {
-    return fmt.Errorf("verification failed: %w", err)
-}
-
-// 3. Make HTTP requests
-resp, err := client.Get("/api/status", map[string]string{
-    "Authorization": "Bearer token",
-})
-
-// 4. Use response
-if resp.StatusCode == http.StatusOK {
-    var data MyData
-    json.Unmarshal(resp.Body, &data)
-}
-
-// 5. Get raw HTTP client (advanced usage)
-httpClient, err := client.HTTPClient()
-if err != nil {
-    return fmt.Errorf("failed to get HTTP client: %w", err)
-}
-```
-
-
-## JavaScript Verifier
-
-This verifier is written in Go but is then compiled to a WebAssembly module.
-See [verifier-js](https://github.com/tinfoilsh/verifier-js) for details. 
 
 
 # Auditing the Verifier
