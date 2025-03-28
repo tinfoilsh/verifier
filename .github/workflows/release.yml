@@ -34,7 +34,7 @@ jobs:
 
       - name: gomobile bind
         run: |
-          gomobile bind -target=ios -o TinfoilVerifier.xcframework $(go list ./... | xargs)
+          gomobile bind -target=ios -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
           zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
       - name: Release
