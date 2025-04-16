@@ -63,6 +63,12 @@ type Document struct {
 	Body   string        `json:"body"`
 }
 
+// Hash returns the SHA-256 hash of the attestation document
+func (d *Document) Hash() string {
+	all := string(d.Format) + d.Body
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
+}
+
 // Verify checks the attestation document against its trust root and returns the inner measurements
 func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
