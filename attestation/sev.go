@@ -77,6 +77,6 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 
 	return &Verification{
 		Measurement: measurement,
-		CertFP:      string(parsedReport.ReportData),
+		PublicKeyFP: string(parsedReport.ReportData),
 	}, nil
 }

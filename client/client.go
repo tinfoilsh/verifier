@@ -79,14 +79,14 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	// Check if the certificate fingerprint matches the one in the verification
-	if certFP != verification.CertFP {
-		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, verification.CertFP)
+	if certFP != verification.PublicKeyFP {
+		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, verification.PublicKeyFP)
 	}
 
 	err = codeMeasurements.Equals(verification.Measurement)
 	if err == nil {
 		s.groundTruth = &GroundTruth{
-			PublicKey:   verification.CertFP,
+			PublicKey:   verification.PublicKeyFP,
 			Digest:      digest,
 			Measurement: codeMeasurements.Fingerprint(),
 		}

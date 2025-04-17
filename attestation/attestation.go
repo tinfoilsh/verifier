@@ -36,7 +36,7 @@ type Measurement struct {
 
 type Verification struct {
 	Measurement *Measurement
-	CertFP      string
+	PublicKeyFP string
 }
 
 // Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
