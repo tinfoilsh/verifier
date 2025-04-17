@@ -44,7 +44,7 @@ func TestNitroVerify(t *testing.T) {
 
 	verification, err := VerifyAttestationJSON([]byte(payload))
 	assert.Nil(t, err)
-	assert.Empty(t, verification.CertFP)
+	assert.Empty(t, verification.PublicKeyFP)
 	assert.Nil(t, verification.Measurement.Equals(expectedMeasurement))
 }
 

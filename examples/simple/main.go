@@ -59,6 +59,6 @@ func main() {
 	}
 
 	log.Println("Verification successful!")
-	log.Printf("TLS certificate fingerprint: %x", verification.CertFP)
+	log.Printf("Public key fingerprint: %s", verification.PublicKeyFP)
 	log.Printf("Measurement: %s", codeMeasurements.Fingerprint())
 }
