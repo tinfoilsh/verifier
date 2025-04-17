@@ -1,10 +1,10 @@
 package client
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"errors"
 	"net/http"
+
+	"github.com/tinfoilsh/verifier/attestation"
 )
 
 var (
@@ -14,13 +14,13 @@ var (
 )
 
 type TLSBoundRoundTripper struct {
-	ExpectedCertFP []byte
+	ExpectedPublicKey string
 }
 
 var _ http.RoundTripper = &TLSBoundRoundTripper{}
 
 func (t *TLSBoundRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
-	if len(t.ExpectedCertFP) == 0 {
+	if len(t.ExpectedPublicKey) == 0 {
 		return nil, ErrNoValidCertificate
 	}
 
@@ -33,8 +33,11 @@ func (t *TLSBoundRoundTripper) RoundTrip(r *http.Request) (*http.Response, error
 		return nil, ErrNoTLS
 	}
 
-	certFP := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
-	if !bytes.Equal(t.ExpectedCertFP, certFP[:]) {
+	certFP, err := attestation.ConnectionCertFP(*resp.TLS)
+	if err != nil {
+		return nil, err
+	}
+	if certFP != t.ExpectedPublicKey {
 		return nil, ErrCertMismatch
 	}
 

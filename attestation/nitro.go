@@ -35,6 +35,6 @@ func verifyNitroAttestation(attestationDoc string) (*Verification, error) {
 
 	return &Verification{
 		Measurement: measurement,
-		CertFP:      attestedResult.Document.UserData,
+		CertFP:      string(attestedResult.Document.UserData),
 	}, nil
 }

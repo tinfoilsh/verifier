@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 
@@ -12,9 +13,9 @@ import (
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
-	CertFingerprint []byte
-	Digest          string
-	Measurement     string
+	PublicKey   string
+	Digest      string
+	Measurement string
 }
 
 type SecureClient struct {
@@ -66,12 +67,28 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
 	}
 
+	// Get cert from TLS connection
+	conn, err := tls.Dial("tcp", s.enclave+":443", &tls.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to enclave: %v", err)
+	}
+	defer conn.Close()
+	certFP, err := attestation.ConnectionCertFP(conn.ConnectionState())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get certificate fingerprint: %v", err)
+	}
+
+	// Check if the certificate fingerprint matches the one in the verification
+	if certFP != verification.CertFP {
+		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, verification.CertFP)
+	}
+
 	err = codeMeasurements.Equals(verification.Measurement)
 	if err == nil {
 		s.groundTruth = &GroundTruth{
-			CertFingerprint: verification.CertFP,
-			Digest:          digest,
-			Measurement:     codeMeasurements.Fingerprint(),
+			PublicKey:   verification.CertFP,
+			Digest:      digest,
+			Measurement: codeMeasurements.Fingerprint(),
 		}
 	}
 	return s.groundTruth, err
@@ -87,7 +104,7 @@ func (s *SecureClient) HTTPClient() (*http.Client, error) {
 	}
 
 	return &http.Client{
-		Transport: &TLSBoundRoundTripper{s.groundTruth.CertFingerprint},
+		Transport: &TLSBoundRoundTripper{s.groundTruth.PublicKey},
 	}, nil
 }
 

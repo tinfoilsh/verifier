@@ -68,11 +68,6 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
-	cfp, err := hex.DecodeString(string(parsedReport.ReportData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode certificate fingerprint: %v", err)
-	}
-
 	measurement := &Measurement{
 		Type: SevGuestV1,
 		Registers: []string{
@@ -82,6 +77,6 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 
 	return &Verification{
 		Measurement: measurement,
-		CertFP:      cfp,
+		CertFP:      string(parsedReport.ReportData),
 	}, nil
 }
