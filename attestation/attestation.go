@@ -1,8 +1,11 @@
 package attestation
 
 import (
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,7 +36,7 @@ type Measurement struct {
 
 type Verification struct {
 	Measurement *Measurement
-	CertFP      []byte
+	CertFP      string
 }
 
 // Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
@@ -92,10 +95,30 @@ func VerifyAttestationJSON(j []byte) (*Verification, error) {
 	return doc.Verify()
 }
 
-// CertFP gets the SHA256 fingerprint of a certificate
-func CertFP(c tls.ConnectionState) []byte {
-	fp := sha256.Sum256(c.PeerCertificates[0].Raw)
-	return fp[:]
+// KeyFP returns the fingerprint of a given ECDSA public key
+func KeyFP(publicKey *ecdsa.PublicKey) string {
+	bytes, _ := x509.MarshalPKIXPublicKey(publicKey)
+	hash := sha256.Sum256(bytes)
+	return hex.EncodeToString(hash[:])
+}
+
+// CertPubkeyFP returns the fingerprint of the public key of a given certificate
+func CertPubkeyFP(cert *x509.Certificate) (string, error) {
+	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return "", fmt.Errorf("unsupported public key type: %T", cert.PublicKey)
+	}
+
+	return KeyFP(pubKey), nil
+}
+
+// ConnectionCertFP gets the KeyFP of the public key of a TLS connection state
+func ConnectionCertFP(c tls.ConnectionState) (string, error) {
+	if c.PeerCertificates == nil || len(c.PeerCertificates) == 0 {
+		return "", fmt.Errorf("no peer certificates")
+	}
+	cert := c.PeerCertificates[0]
+	return CertPubkeyFP(cert)
 }
 
 // Fetch retrieves the attestation document from a given enclave hostname

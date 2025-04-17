@@ -1,7 +1,6 @@
 package attestation
 
 import (
-	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,10 +14,7 @@ func TestSevVerify(t *testing.T) {
 	verification, err := VerifyAttestationJSON([]byte(att))
 	assert.Nil(t, err)
 
-	expectedCertFP, err := hex.DecodeString("65083e5904c0273b644ad90e51e12a8d76fe07f2ab8ab14d76011b3e9c7dcaa7")
-	assert.Nil(t, err)
-
-	assert.Equal(t, expectedCertFP, verification.CertFP)
+	assert.Equal(t, "65083e5904c0273b644ad90e51e12a8d76fe07f2ab8ab14d76011b3e9c7dcaa7", verification.CertFP)
 	assert.Equal(t, 1, len(verification.Measurement.Registers))
 	assert.Equal(t, "ff18f0a28cd150bb6123aa266adf07b4edac8ade942085f1b5283d37750ee924ac16199c2bfec7d42a6ab3964354685f", verification.Measurement.Registers[0])
 }
