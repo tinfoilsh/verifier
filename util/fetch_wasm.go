@@ -19,7 +19,7 @@ func Get(url string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.Status > 299 {
-		return nil, fmt.Errorf("HTTP GET %s: %s", url, resp.Status)
+		return nil, fmt.Errorf("HTTP GET %s: %d %s", url, resp.Status, resp.StatusText)
 	}
 	return resp.Body, nil
 }
