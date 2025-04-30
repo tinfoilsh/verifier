@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	repo    = flag.String("r", "tinfoilsh/confidential-llama3-3-70b-64k", "")
-	enclave = flag.String("e", "llama3-3-70b-64k.model.tinfoil.sh", "")
+	repo    = flag.String("r", "tinfoilsh/confidential-llama3-3-70b", "")
+	enclave = flag.String("e", "llama3-3-70b.model.tinfoil.sh", "")
 )
 
 func main() {
