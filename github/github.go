@@ -13,7 +13,7 @@ import (
 
 // FetchLatestDigest gets the latest release and attestation digest of a repo
 func FetchLatestDigest(repo string) (string, error) {
-	url := "https://api.github.com/repos/" + repo + "/releases/latest"
+	url := "https://api-github-proxy.tinfoil.sh/repos/" + repo + "/releases/latest"
 	releaseResponse, err := util.Get(url)
 	if err != nil {
 		return "", err
@@ -34,7 +34,7 @@ func FetchLatestDigest(repo string) (string, error) {
 		return matches[1], nil
 	}
 
-	url = fmt.Sprintf(`https://github.com/%s/releases/download/%s/tinfoil.hash`, repo, responseJSON.TagName)
+	url = fmt.Sprintf(`https://api-github-proxy.tinfoil.sh/%s/releases/download/%s/tinfoil.hash`, repo, responseJSON.TagName)
 	digestResp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -52,7 +52,7 @@ func FetchLatestDigest(repo string) (string, error) {
 
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
 func FetchAttestationBundle(repo, digest string) ([]byte, error) {
-	url := "https://api.github.com/repos/" + repo + "/attestations/sha256:" + digest
+	url := "https://gh-attestation-proxy.tinfoil.sh/repos/" + repo + "/attestations/sha256:" + digest
 	bundleResponse, err := util.Get(url)
 	if err != nil {
 		return nil, err
