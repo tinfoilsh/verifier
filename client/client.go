@@ -83,7 +83,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, verification.PublicKeyFP)
 	}
 
-	err = codeMeasurements.Equals(verification.Measurement)
+	err = codeMeasurements.Compare(verification.Measurement)
 	if err == nil {
 		s.groundTruth = &GroundTruth{
 			PublicKey:   verification.PublicKeyFP,

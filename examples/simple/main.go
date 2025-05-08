@@ -54,7 +54,7 @@ func main() {
 	}
 
 	log.Println("Comparing measurements")
-	if err := codeMeasurements.Equals(verification.Measurement); err != nil {
+	if err := codeMeasurements.Compare(verification.Measurement); err != nil {
 		log.Fatalf("code measurements do not match: %v", err)
 	}
 

@@ -4,6 +4,46 @@ Tinfoil's client-side portable remote attestation verifier and secure HTTP clien
 
 [![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
+## Build instructions
+
+### Native GO
+Build
+```bash
+go build ./...
+```
+
+Run tests
+```bash
+go test ./...
+```
+### GoMobile
+Installing gomobile
+```bash
+go install golang.org/x/mobile/cmd/gomobile@latest
+go install golang.org/x/mobile/cmd/gobind@latest
+go get -u golang.org/x/mobile/bind
+```
+
+Make sure ```go env GOPATH``` is in your PATH.
+
+#### Objective-C binding for iOS, iOS Simulator, and MacOS
+Building iOS target requires the host machine to be running MacOS.
+Make sure Go and Xcode are installed and properly configured. 
+
+```bash
+gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
+```
+
+#### Java binding for Android
+Make sure the Android SDK and NDK is installed and properly configured.
+This can be done through Android studio or manually.
+You will also need to install the Java JDK.
+
+```bash 
+gomobile bind -target=android -androidapi 21 -o TinfoilVerifier.aar $(go list ./... | grep -v "/examples/" | xargs)
+```
+
+
 ## Quick Start: Use the Secure HTTP Client
 
 ```go
