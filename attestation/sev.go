@@ -68,12 +68,7 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
-	measurement := &Measurement{
-		Type: SevGuestV1,
-		Registers: []string{
-			hex.EncodeToString(parsedReport.Measurement),
-		},
-	}
+	measurement := NewSevMeasurement(hex.EncodeToString(parsedReport.Measurement))
 
 	return &Verification{
 		Measurement: measurement,

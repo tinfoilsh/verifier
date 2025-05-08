@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 )
 
@@ -29,7 +28,7 @@ var (
 
 type Measurement struct {
 	Type      string
-	Registers []string
+	registers []string
 }
 
 type Verification struct {
@@ -37,13 +36,31 @@ type Verification struct {
 	PublicKeyFP string
 }
 
+// NewNitroMeasurement creates a measurement for an AWS Nitro Enclave.
+// Nitro always has 3 PCR-style registers, so we validate the length.
+func NewNitroMeasurement(pcr0, pcr1, pcr2 string) *Measurement {
+	return &Measurement{
+		Type:      AWSNitroEnclaveV1,
+		registers: []string{pcr0, pcr1, pcr2},
+	}
+}
+
+// NewSevMeasurement creates a measurement for an AMD SEV-SNP guest.
+// SEV launch measurements have exactly one register.
+func NewSevMeasurement(launch string) *Measurement {
+	return &Measurement{
+		Type:      SevGuestV1,
+		registers: []string{launch},
+	}
+}
+
 // Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
 func (m *Measurement) Fingerprint() string {
-	if len(m.Registers) == 1 {
-		return m.Registers[0]
+	if len(m.registers) == 1 {
+		return m.registers[0]
 	}
 
-	all := string(m.Type) + strings.Join(m.Registers, "")
+	all := string(m.Type) + strings.Join(m.registers, "")
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
 }
 
@@ -51,10 +68,32 @@ func (m *Measurement) Compare(other *Measurement) error {
 	if m.Type != other.Type {
 		return ErrFormatMismatch
 	}
-	if len(m.Registers) != len(other.Registers) || !slices.Equal(m.Registers, other.Registers) {
+	if len(m.registers) != len(other.registers) {
 		return ErrMeasurementMismatch
 	}
+	for i := 0; i < m.RegisterCount(); i++ {
+		if m.GetRegister(i) != other.GetRegister(i) {
+			return ErrMeasurementMismatch
+		}
+	}
 
+	return nil
+}
+
+func (m *Measurement) RegisterCount() int { return len(m.registers) }
+
+func (m *Measurement) GetRegister(i int) string {
+	if i < 0 || i >= len(m.registers) {
+		return ""
+	}
+	return m.registers[i]
+}
+
+func (m *Measurement) SetRegister(i int, r string) error {
+	if i < 0 || i >= len(m.registers) {
+		return fmt.Errorf("invalid register index: %d", i)
+	}
+	m.registers[i] = r
 	return nil
 }
 

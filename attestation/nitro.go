@@ -24,14 +24,11 @@ func verifyNitroAttestation(attestationDoc string) (*Verification, error) {
 	}
 
 	pcrs := attestedResult.Document.PCRs
-	measurement := &Measurement{
-		Type: AWSNitroEnclaveV1,
-		Registers: []string{
-			hex.EncodeToString(pcrs[0]),
-			hex.EncodeToString(pcrs[1]),
-			hex.EncodeToString(pcrs[2]),
-		},
-	}
+	measurement := NewNitroMeasurement(
+		hex.EncodeToString(pcrs[0]),
+		hex.EncodeToString(pcrs[1]),
+		hex.EncodeToString(pcrs[2]),
+	)
 
 	return &Verification{
 		Measurement: measurement,

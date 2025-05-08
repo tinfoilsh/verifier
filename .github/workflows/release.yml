@@ -37,9 +37,12 @@ jobs:
         run: |
           gomobile bind -target=ios,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
           zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
+          gomobile bind -target=android -androidapi 21 -o TinfoilVerifier.aar $(go list ./... | grep -v "/examples/" | xargs)
+          zip -r TinfoilVerifier.aar.zip TinfoilVerifier.aar
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             TinfoilVerifier.xcframework.zip
+            TinfoilVerifier.aar.zip

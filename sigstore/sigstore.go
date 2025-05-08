@@ -91,19 +91,15 @@ func VerifyAttestation(
 	measurementType := result.Statement.PredicateType
 	switch measurementType {
 	case attestation.AWSNitroEnclaveV1:
-		return &attestation.Measurement{
-			Type: measurementType,
-			Registers: []string{
-				predicateFields["PCR0"].GetStringValue(),
-				predicateFields["PCR1"].GetStringValue(),
-				predicateFields["PCR2"].GetStringValue(),
-			},
-		}, nil
+		return attestation.NewNitroMeasurement(
+			predicateFields["PCR0"].GetStringValue(),
+			predicateFields["PCR1"].GetStringValue(),
+			predicateFields["PCR2"].GetStringValue(),
+		), nil
 	case attestation.SevGuestV1:
-		return &attestation.Measurement{
-			Type:      measurementType,
-			Registers: []string{predicateFields["measurement"].GetStringValue()},
-		}, nil
+		return attestation.NewSevMeasurement(
+			predicateFields["measurement"].GetStringValue(),
+		), nil
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
 	}

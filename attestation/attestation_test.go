@@ -14,51 +14,33 @@ func TestMeasurementEquals(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "same measurements",
-			m1: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg2"},
-			},
-			m2: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg2"},
-			},
+			name:    "same measurements Nitro",
+			m1:      NewNitroMeasurement("reg1", "reg2", "reg3"),
+			m2:      NewNitroMeasurement("reg1", "reg2", "reg3"),
 			wantErr: nil,
 		},
 		{
-			name: "different types",
-			m1: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg2"},
-			},
-			m2: &Measurement{
-				Type:      "other-type",
-				Registers: []string{"reg1", "reg2"},
-			},
+			name:    "same measurements SEV",
+			m1:      NewSevMeasurement("reg1"),
+			m2:      NewSevMeasurement("reg1"),
+			wantErr: nil,
+		},
+		{
+			name:    "different types",
+			m1:      NewNitroMeasurement("reg1", "reg2", "reg3"),
+			m2:      NewSevMeasurement("reg1"),
 			wantErr: ErrFormatMismatch,
 		},
 		{
-			name: "different register lengths",
-			m1: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg2"},
-			},
-			m2: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1"},
-			},
+			name:    "different register values Nitro",
+			m1:      NewNitroMeasurement("reg1", "reg2", "reg3"),
+			m2:      NewNitroMeasurement("reg1", "reg3", "reg4"),
 			wantErr: ErrMeasurementMismatch,
 		},
 		{
-			name: "different register values",
-			m1: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg2"},
-			},
-			m2: &Measurement{
-				Type:      AWSNitroEnclaveV1,
-				Registers: []string{"reg1", "reg3"},
-			},
+			name:    "different register values SEV",
+			m1:      NewSevMeasurement("reg1"),
+			m2:      NewSevMeasurement("reg2"),
 			wantErr: ErrMeasurementMismatch,
 		},
 	}
