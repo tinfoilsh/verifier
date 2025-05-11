@@ -31,7 +31,7 @@ Building iOS target requires the host machine to be running MacOS.
 Make sure Go and Xcode are installed and properly configured. 
 
 ```bash
-gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
+gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | grep -v "/client" | xargs)
 ```
 
 #### Java binding for Android
@@ -40,7 +40,7 @@ This can be done through Android studio or manually.
 You will also need to install the Java JDK.
 
 ```bash 
-gomobile bind -target=android -androidapi 21 -o TinfoilVerifier.aar $(go list ./... | grep -v "/examples/" | xargs)
+gomobile bind -target=android -androidapi 21 -o TinfoilVerifier.aar $(go list ./... | grep -v "/examples/" | grep -v "/client" | xargs)
 ```
 
 
