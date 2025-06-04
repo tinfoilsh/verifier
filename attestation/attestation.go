@@ -20,6 +20,7 @@ type PredicateType string
 const (
 	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
 	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
+	TdxGuestV1        PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
 
 	attestationEndpoint = "/.well-known/tinfoil-attestation"
 )
@@ -79,6 +80,8 @@ func (d *Document) Verify() (*Verification, error) {
 		return verifyNitroAttestation(d.Body)
 	case SevGuestV1:
 		return verifySevAttestation(d.Body)
+	case TdxGuestV1:
+		return verifyTdxAttestation(d.Body)
 	default:
 		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
@@ -114,7 +117,7 @@ func CertPubkeyFP(cert *x509.Certificate) (string, error) {
 
 // ConnectionCertFP gets the KeyFP of the public key of a TLS connection state
 func ConnectionCertFP(c tls.ConnectionState) (string, error) {
-	if c.PeerCertificates == nil || len(c.PeerCertificates) == 0 {
+	if len(c.PeerCertificates) == 0 {
 		return "", fmt.Errorf("no peer certificates")
 	}
 	cert := c.PeerCertificates[0]

@@ -7,73 +7,26 @@ Tinfoil's client-side portable remote attestation verifier and secure HTTP clien
 ## Quick Start: Use the Secure HTTP Client
 
 ```go
-// Create a client for a specific enclave and code repository
-client := client.NewSecureClient("enclave.example.com", "org/repo")
+ // Create a client for a specific enclave and code repository
+tinfoilClient := client.NewSecureClient("enclave.example.com", "org/repo")
 
 // Make HTTP requests - verification happens automatically
-resp, err := client.Get("/api/data", nil)
+resp, err := tinfoilClient.Get("/api/data", nil)
 if err != nil {
-    return fmt.Errorf("request failed: %w", err)
+    log.Fatalf("request failed: %v", err)
 }
 
 // POST with headers and body
 headers := map[string]string{"Content-Type": "application/json"}
 body := []byte(`{"key": "value"}`)
-resp, err := client.Post("/api/submit", headers, body)
+resp, err := tinfoilClient.Post("/api/submit", headers, body)
 ```
-
-See [Secure HTTP Client](#secure-http-client) for examples of how to use the secure client.
-
-## Code Organization
-
-| **Directory**                    |                                                                |
-| :------------------------------- | :------------------------------------------------------------- |
-| [attestation/](attestation/)     | Implementation of remote attestation verification for SEV and Nitro enclaves. |
-| [client/](client/)               | Implementation of secure HTTP client with attestation verification. |
-| [sigstore/](sigstore/)           | Integration with Sigstore for verifying measurements against signed attestations. |
-| [github/](github/)               | GitHub API integration for fetching release information and attestation bundles. |
-| [config/](config/)               | Configuration management for version constraints and settings. |
-| [util/](util/)                   | Utility functions including HTTP fetching for both WASM and non-WASM builds. |
 
 ## Remote Attestation
 
 Remote attestation provides cryptographic proof that an enclave is running unmodified code in a secure environment. The verifier supports attestation for **AMD SEV-SNP** and **AWS Nitro Enclaves**.
 
-### Example Usage
-
-```go
-// 1. Fetch and verify attestation from an enclave
-doc, certFingerprint, err := attestation.Fetch("enclave.example.com")
-if err != nil {
-    return fmt.Errorf("failed to fetch attestation: %w", err)
-}
-
-// 2. Verify the attestation's authenticity
-measurements, userData, err := doc.Verify()
-if err != nil {
-    return fmt.Errorf("attestation verification failed: %w", err)
-}
-
-// 3. Check measurements against known good values from Sigstore
-trustRoot, err := sigstore.FetchTrustRoot()
-if err != nil {
-    return fmt.Errorf("failed to fetch trust root: %w", err)
-}
-
-measurement, err := sigstore.VerifyAttestation(
-    trustRoot,
-    attestationBundle, // Need to fetch this from GitHub
-    hexDigest,        // Need to fetch this from GitHub
-    "org/repo"
-)
-if err != nil {
-    return fmt.Errorf("attestation verification failed: %w", err)
-}
-```
-
-See [Secure HTTP Client](#secure-http-client) for examples of how to use the secure client.
-
-> **Remark:** The certificate fingerprint binds the HTTPS connection to the attested enclave, preventing MITM attacks. This binding ensures you're only connecting to an endpoint whose TLS key material was generated within the verified enclave. An attacker cannot intercept and proxy the connection since they cannot access the private key material.
+> **Remark:** The public key binds the HTTPS connection to the attested enclave, preventing MITM attacks. This binding ensures you're only connecting to an endpoint whose TLS key material was generated within the verified enclave. An attacker cannot intercept and proxy the connection since they cannot access the private key material.
 
 ### How Attestation Works
 
@@ -97,11 +50,11 @@ See [Secure HTTP Client](#secure-http-client) for examples of how to use the sec
 
 ### Security Properties
 
-| Property | Description |
-|----------|-------------|
-| **Authenticity** | Attestations are signed by hardware-backed keys (AMD/AWS) |
-| **Integrity** | Measurements prove the enclave code hasn't been modified |
-| **Identity** | Certificate fingerprint binds HTTPS to the attested enclave |
+| Property         | Description                                                 |
+|------------------|-------------------------------------------------------------|
+| **Authenticity** | Attestations are signed by hardware-backed keys (AMD/AWS)   |
+| **Integrity**    | Measurements prove the enclave code hasn't been modified    |
+| **Identity**     | Certificate fingerprint binds HTTPS to the attested enclave |
 
 ### Platform-Specific Details
 
@@ -169,11 +122,11 @@ The verifier provides a secure HTTP client that ensures all requests are made to
 
 ### Security Properties
 
-| Property | Description |
-|----------|-------------|
-| **Code Verification** | Ensures enclave runs the expected code version |
+| Property                | Description                                        |
+|-------------------------|----------------------------------------------------|
+| **Code Verification**   | Ensures enclave runs the expected code version     |
 | **Connection Security** | TLS with certificate pinning prevents MITM attacks |
-| **Request Isolation** | Each client connects to exactly one enclave |
+| **Request Isolation**   | Each client connects to exactly one enclave        |
 
 ### Usage Examples
 
