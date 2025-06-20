@@ -1,10 +1,13 @@
 package attestation
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -20,6 +23,7 @@ type PredicateType string
 const (
 	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
 	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
+	SevGuestV2        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v2"
 	TdxGuestV1        PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
 
 	attestationEndpoint = "/.well-known/tinfoil-attestation"
@@ -65,6 +69,24 @@ func (m *Measurement) Equals(other *Measurement) error {
 type Document struct {
 	Format PredicateType `json:"format"`
 	Body   string        `json:"body"`
+}
+
+// NewDocument creates a new attestation document from a given format and body
+func NewDocument(format PredicateType, body []byte) (*Document, error) {
+	// Compress attestation body
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	if _, err := gz.Write(body); err != nil {
+		return nil, fmt.Errorf("failed to write data: %v", err)
+	}
+	if err := gz.Close(); err != nil {
+		return nil, fmt.Errorf("closing reader: %v", err)
+	}
+
+	return &Document{
+		Format: format,
+		Body:   base64.StdEncoding.EncodeToString(b.Bytes()),
+	}, nil
 }
 
 // Hash returns the SHA-256 hash of the attestation document
