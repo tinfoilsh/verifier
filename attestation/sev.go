@@ -97,7 +97,7 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		// ReportIDMA
 		// Measurement is verified in latter steps
 		// ChipID
-		MinimumBuild:              2,
+		MinimumBuild:              21,
 		MinimumVersion:            uint16((1 << 8) | 55), // 1.55
 		MinimumTCB:                mintcb,
 		MinimumLaunchTCB:          mintcb,
