@@ -65,6 +65,12 @@ jobs:
           tag=${GITHUB_REF##*/}
           for repo in tinfoil-go; do
             gh api repos/"${{ github.repository_owner }}"/$repo/dispatches \
-              --field event_type=verifier_published \
-              --field client_payload='{"version":"'"$tag"'"}'
+              --input - <<EOF
+          {
+            "event_type": "verifier_published",
+            "client_payload": {
+              "version": "$tag"
+            }
+          }
+          EOF
           done
