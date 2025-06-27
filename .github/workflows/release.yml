@@ -63,7 +63,7 @@ jobs:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           tag=${GITHUB_REF##*/}
-          for repo in tinfoil-go; do
+          for repo in tinfoil-go tinfoil-cli; do
             gh api repos/"${{ github.repository_owner }}"/$repo/dispatches \
               --input - <<EOF
           {
