@@ -54,8 +54,9 @@ jobs:
         id: app_token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ secrets.APP_ID }}
+          app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: tinfoil-go,tinfoil-swift,tinfoil-node,tinfoil-cli,verifier-js
 
       - name: Send repository_dispatch to each consumer
         env:
