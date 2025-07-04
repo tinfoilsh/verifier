@@ -77,6 +77,7 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 
 	mintcb := kds.TCBParts{
 		BlSpl:    0x7,
+		TeeSpl:   0x0,
 		SnpSpl:   0xe,
 		UcodeSpl: 0x48,
 	}
@@ -89,13 +90,13 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 			SingleSocket: false,
 		},
 		MinimumGuestSvn: 0,
-		// ReportData TODO make sure we don't need a nonce thanks to public key in the attestation report.
+		// ReportData // For now does not contain a nonce (content )
 		// HostData
 		// ImageID
 		// FamilyID
 		// ReportID
 		// ReportIDMA
-		// Measurement is verified in latter steps
+		// Measurement // Is verified in latter steps
 		// ChipID
 		MinimumBuild:              21,
 		MinimumVersion:            uint16((1 << 8) | 55), // 1.55
