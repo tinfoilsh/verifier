@@ -41,5 +41,36 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            TinfoilVerifier.xcframework.zip
+          files: TinfoilVerifier.xcframework.zip
+
+  notify-downstreams:
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read       # reading this repo is enough
+    steps:
+      - name: Mint App token
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: tinfoil-go,tinfoil-swift,tinfoil-node,tinfoil-cli,verifier-js
+
+      - name: Send repository_dispatch to each consumer
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          tag=${GITHUB_REF##*/}
+          for repo in tinfoil-go tinfoil-cli; do
+            gh api repos/"${{ github.repository_owner }}"/$repo/dispatches \
+              --input - <<EOF
+          {
+            "event_type": "verifier_published",
+            "client_payload": {
+              "version": "$tag"
+            }
+          }
+          EOF
+          done
