@@ -18,6 +18,26 @@ const (
 	oidcIssuer = "https://token.actions.githubusercontent.com"
 )
 
+type Client struct {
+	trustRoot *root.TrustedRoot
+}
+
+func NewClient() (*Client, error) {
+	trustRootJSON, err := FetchTrustRoot()
+	if err != nil {
+		return nil, fmt.Errorf("fetching trust root: %w", err)
+	}
+
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("parsing trust root: %w", err)
+	}
+
+	return &Client{
+		trustRoot: trustRoot,
+	}, nil
+}
+
 // FetchTrustRoot fetches the trust root from the Sigstore TUF repo
 func FetchTrustRoot() ([]byte, error) {
 	tufOpts := tuf.
@@ -32,17 +52,7 @@ func FetchTrustRoot() ([]byte, error) {
 	return client.GetTarget("trusted_root.json")
 }
 
-// VerifyAttestation verifies the attested measurements of an enclave image
-// against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyAttestation(
-	trustRootJSON, bundleJSON []byte,
-	hexDigest, repo string,
-) (*attestation.Measurement, error) {
-	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
-	if err != nil {
-		return nil, fmt.Errorf("parsing trust root: %w", err)
-	}
-
+func (c *Client) verifyBundle(bundleJSON []byte, repo, hexDigest string) (*verify.VerificationResult, error) {
 	var b bundle.Bundle
 	b.Bundle = new(protobundle.Bundle)
 	if err := b.UnmarshalJSON(bundleJSON); err != nil {
@@ -50,7 +60,7 @@ func VerifyAttestation(
 	}
 
 	verifier, err := verify.NewSignedEntityVerifier(
-		trustRoot,
+		c.trustRoot,
 		verify.WithSignedCertificateTimestamps(1),
 		verify.WithTransparencyLog(1),
 		verify.WithObserverTimestamps(1),
@@ -85,6 +95,18 @@ func VerifyAttestation(
 		return nil, fmt.Errorf("verifying: %w", err)
 	}
 
+	return result, nil
+}
+
+func (c *Client) VerifyAttestation(
+	bundleJSON []byte,
+	hexDigest, repo string,
+) (*attestation.Measurement, error) {
+	result, err := c.verifyBundle(bundleJSON, repo, hexDigest)
+	if err != nil {
+		return nil, fmt.Errorf("verifying bundle: %w", err)
+	}
+
 	predicate := result.Statement.Predicate
 	predicateFields := predicate.Fields
 
@@ -107,4 +129,19 @@ func VerifyAttestation(
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
 	}
+}
+
+// VerifyAttestation verifies the attested measurements of an enclave image
+// against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
+// Deprecated: Use client.VerifyAttestation instead.
+func VerifyAttestation(
+	trustRootJSON, bundleJSON []byte,
+	hexDigest, repo string,
+) (*attestation.Measurement, error) {
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("parsing trust root: %w", err)
+	}
+	client := &Client{trustRoot: trustRoot}
+	return client.VerifyAttestation(bundleJSON, hexDigest, repo)
 }
