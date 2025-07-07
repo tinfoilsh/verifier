@@ -12,6 +12,9 @@ func TestTdxVerify(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, "750bd26ea09e705b5819f1df6233c9742574430ddc1c588ae72541d23faab501", verification.PublicKeyFP)
-	assert.Equal(t, 1, len(verification.Measurement.Registers))
+	assert.Equal(t, 4, len(verification.Measurement.Registers))
 	assert.Equal(t, "7357a10d2e2724dffe68813e3cc4cfcde6814d749f2fb62e3953e54f6e0b50a219786afe2cd478f684b52c61837e1114", verification.Measurement.Registers[0])
+	assert.Equal(t, "58cfe6752f9f51cdb09f44511bc1f50219b50815e55125083a842f95d4cce50606c721ea8937d0a65f11972a09177349", verification.Measurement.Registers[1])
+	assert.Equal(t, "d7ea127b7161f81373fa08fb943ae5834ca484dd045bc7cffdc31b595556d68c64653e2ed36afb25b8625a406e541d0d", verification.Measurement.Registers[2])
+	assert.Equal(t, "78034c10d49dc43b868aa10719c1c38f414662bfab92ab9ac970efbac30d5eca72e0156aafe58bef54e5e404146d8b3a", verification.Measurement.Registers[3])
 }

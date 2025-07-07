@@ -30,13 +30,13 @@ func main() {
 	}
 
 	log.Println("Fetching SigStore trust root")
-	trustRootJSON, err := sigstore.FetchTrustRoot()
+	sigstoreClient, err := sigstore.NewClient()
 	if err != nil {
 		log.Fatalf("failed to fetch trust root: %v", err)
 	}
 
 	log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
-	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, digest, *repo)
+	codeMeasurements, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 	if err != nil {
 		log.Fatalf("failed to verify attested measurements: %v", err)
 	}

@@ -8,8 +8,12 @@ import (
 
 type Fetcher struct{}
 
-func (_ *Fetcher) DownloadFile(urlPath string, maxLength int64, timeout time.Duration) ([]byte, error) {
-	return Get(urlPath)
+func (*Fetcher) DownloadFile(urlPath string, maxLength int64, timeout time.Duration) ([]byte, error) {
+	body, _, err := Get(urlPath)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
 var (
