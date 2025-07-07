@@ -49,6 +49,9 @@ func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
 			Type: TdxGuestV1,
 			Registers: []string{
 				hex.EncodeToString(report.TdQuoteBody.MrTd),
+				hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
+				hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
+				hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
 			},
 		},
 		PublicKeyFP: string(report.TdQuoteBody.ReportData),

@@ -23,7 +23,6 @@ type PredicateType string
 const (
 	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
 	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
-	SevGuestV2        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v2"
 	TdxGuestV1        PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
 
 	attestationEndpoint = "/.well-known/tinfoil-attestation"
