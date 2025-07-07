@@ -5,21 +5,21 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"log"
 
 	"github.com/google/go-tdx-guest/abi"
 	pb "github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/verify"
-	"github.com/google/go-tdx-guest/verify/trust"
+	"github.com/tinfoilsh/verifier/util"
 )
 
 type tdxGetter struct{}
 
 func (t tdxGetter) Get(url string) (map[string][]string, []byte, error) {
-	log.Printf("tdx get: %s", url)
-
-	getter := trust.SimpleHTTPSGetter{}
-	return getter.Get(url)
+	body, headers, err := util.Get(url)
+	if err != nil {
+		return nil, nil, err
+	}
+	return headers, body, nil
 }
 
 func verifyTdxAttestation(attestationDoc string) (*Verification, error) {

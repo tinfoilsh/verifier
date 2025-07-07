@@ -10,16 +10,16 @@ import (
 	fetch "marwan.io/wasm-fetch"
 )
 
-func Get(url string) ([]byte, error) {
+func Get(url string) ([]byte, map[string][]string, error) {
 	resp, err := fetch.Fetch(url, &fetch.Opts{
 		Method: fetch.MethodGet,
 		Signal: context.Background(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if resp.Status > 299 {
-		return nil, fmt.Errorf("HTTP GET %s: %d %s", url, resp.Status, resp.StatusText)
+		return nil, nil, fmt.Errorf("HTTP GET %s: %d %s", url, resp.Status, resp.StatusText)
 	}
-	return resp.Body, nil
+	return resp.Body, resp.Headers, nil
 }

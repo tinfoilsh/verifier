@@ -41,7 +41,11 @@ func (_ *getter) Get(targetURL string) ([]byte, error) {
 	}
 
 	u.Host = "kds-proxy.tinfoil.sh"
-	return util.Get(u.String())
+	body, _, err := util.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
 var (
