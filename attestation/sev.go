@@ -26,7 +26,7 @@ var vcekGenoaCertChain []byte
 
 type getter struct{}
 
-func (_ *getter) Get(targetURL string) ([]byte, error) {
+func (*getter) Get(targetURL string) ([]byte, error) {
 	u, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %v", err)
@@ -58,7 +58,7 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
-	opts := verify.DefaultOptions() // TODO: What are the default options here?
+	opts := verify.DefaultOptions()
 	opts.Getter = &getter{}
 	opts.Product = &sevsnp.SevProduct{
 		Name:            sevsnp.SevProduct_SEV_PRODUCT_GENOA,
