@@ -29,12 +29,12 @@ func FetchDigest(repo, tag string) (string, error) {
 	return strings.TrimSpace(string(digest)), nil
 }
 
-// FetchLatest gets the latest release, tag, and attestation digest of a repo
-func FetchLatest(repo string) (string, string, error) {
+// FetchLatestDigest gets the latest release, tag, and attestation digest of a repo
+func FetchLatestDigest(repo string) (string, error) {
 	url := "https://api-github-proxy.tinfoil.sh/repos/" + repo + "/releases/latest"
 	releaseResponse, err := util.Get(url)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	var responseJSON struct {
@@ -42,31 +42,21 @@ func FetchLatest(repo string) (string, string, error) {
 		Body    string `json:"body"`
 	}
 	if err := json.Unmarshal(releaseResponse, &responseJSON); err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	// Backwards compatibility for old EIF releases
 	eifRegex := regexp.MustCompile(`EIF hash: ([a-fA-F0-9]{64})`)
 	matches := eifRegex.FindStringSubmatch(responseJSON.Body)
 	if len(matches) > 1 {
-		return matches[1], responseJSON.TagName, nil
+		return matches[1], nil
 	}
 
 	digest, err := FetchDigest(repo, responseJSON.TagName)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to fetch digest for %s@%s: %v", repo, responseJSON.TagName, err)
+		return "", fmt.Errorf("failed to fetch digest for %s@%s: %v", repo, responseJSON.TagName, err)
 	}
-	return digest, responseJSON.TagName, nil
-}
-
-// FetchLatestDigest gets the latest release and attestation digest of a repo
-func FetchLatestDigest(repo string) (string, error) {
-	release, _, err := FetchLatest(repo)
-	if err != nil {
-		return "", err
-	}
-
-	return release, nil
+	return digest, nil
 }
 
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
