@@ -21,9 +21,10 @@ import (
 type PredicateType string
 
 const (
-	AWSNitroEnclaveV1 PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
-	SevGuestV1        PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
-	TdxGuestV1        PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
+	AWSNitroEnclaveV1     PredicateType = "https://tinfoil.sh/predicate/aws-nitro-enclave/v1"
+	SevGuestV1            PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
+	TdxGuestV1            PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
+	SnpTdxMultiPlatformV1 PredicateType = "https://tinfoil.sh/predicate/snp-tdx-multiplatform/v1"
 
 	attestationEndpoint = "/.well-known/tinfoil-attestation"
 )
@@ -57,6 +58,11 @@ func (m *Measurement) Equals(other *Measurement) error {
 	if m.Type != other.Type {
 		return ErrFormatMismatch
 	}
+
+	if m.Type == SnpTdxMultiPlatformV1 {
+		return errors.New("direct multiplatform measurement comparison is not supported")
+	}
+
 	if len(m.Registers) != len(other.Registers) || !slices.Equal(m.Registers, other.Registers) {
 		return ErrMeasurementMismatch
 	}

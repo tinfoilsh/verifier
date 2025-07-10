@@ -126,6 +126,21 @@ func (c *Client) VerifyAttestation(
 			Type:      measurementType,
 			Registers: []string{predicateFields["measurement"].GetStringValue()},
 		}, nil
+	case attestation.SnpTdxMultiPlatformV1:
+		tdxMeasurement := predicateFields["tdx_measurement"].GetStructValue()
+		if tdxMeasurement == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no tdx measurement")
+		}
+		rtmrs := tdxMeasurement.GetFields()
+
+		return &attestation.Measurement{
+			Type: measurementType,
+			Registers: []string{
+				predicateFields["snp_measurement"].GetStringValue(),
+				rtmrs["rtmr1"].GetStringValue(),
+				rtmrs["rtmr2"].GetStringValue(),
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
 	}
