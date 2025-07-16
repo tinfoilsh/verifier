@@ -22,7 +22,11 @@ func (t tdxGetter) Get(url string) (map[string][]string, []byte, error) {
 	return headers, body, nil
 }
 
-func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
+func verifyTdxAttestation(attestationDoc string, hardwareMeasurements []*HardwareMeasurement) (*Verification, error) {
+	if len(hardwareMeasurements) == 0 {
+		return nil, fmt.Errorf("hardware measurements are required for TDX attestation")
+	}
+
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
 		return nil, err
@@ -44,16 +48,23 @@ func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
-	return &Verification{
-		Measurement: &Measurement{
-			Type: TdxGuestV1,
-			Registers: []string{
-				hex.EncodeToString(report.TdQuoteBody.MrTd),
-				hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
-				hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
-				hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
-			},
+	measurement := &Measurement{
+		Type: TdxGuestV1,
+		Registers: []string{
+			hex.EncodeToString(report.TdQuoteBody.MrTd),
+			hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
+			hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
+			hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
 		},
+	}
+
+	_, err = VerifyHardware(hardwareMeasurements, measurement)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify hardware: %v", err)
+	}
+
+	return &Verification{
+		Measurement: measurement,
 		PublicKeyFP: string(report.TdQuoteBody.ReportData),
 	}, nil
 }

@@ -35,6 +35,12 @@ func main() {
 		log.Fatalf("failed to fetch trust root: %v", err)
 	}
 
+	log.Println("Fetching latest hardware measurements")
+	hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
+	if err != nil {
+		log.Fatalf("failed to fetch hardware measurements: %v", err)
+	}
+
 	log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
 	codeMeasurements, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 	if err != nil {
@@ -48,7 +54,7 @@ func main() {
 	}
 
 	log.Println("Verifying enclave measurements")
-	verification, err := enclaveAttestation.Verify()
+	verification, err := enclaveAttestation.Verify(hwMeasurements)
 	if err != nil {
 		log.Fatalf("failed to verify enclave measurements: %v", err)
 	}

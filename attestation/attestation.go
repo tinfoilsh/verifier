@@ -102,28 +102,28 @@ func (d *Document) Hash() string {
 }
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
-func (d *Document) Verify() (*Verification, error) {
+func (d *Document) Verify(hardwareMeasurements []*HardwareMeasurement) (*Verification, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	case SevGuestV1:
 		return verifySevAttestation(d.Body)
 	case TdxGuestV1:
-		return verifyTdxAttestation(d.Body)
+		return verifyTdxAttestation(d.Body, hardwareMeasurements)
 	default:
 		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
 }
 
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
-func VerifyAttestationJSON(j []byte) (*Verification, error) {
+func VerifyAttestationJSON(j []byte, hardwareMeasurements []*HardwareMeasurement) (*Verification, error) {
 	var doc Document
 	err := json.Unmarshal(j, &doc)
 	if err != nil {
 		return nil, err
 	}
 
-	return doc.Verify()
+	return doc.Verify(hardwareMeasurements)
 }
 
 // KeyFP returns the fingerprint of a given ECDSA public key
