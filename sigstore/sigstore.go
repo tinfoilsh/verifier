@@ -134,6 +134,20 @@ func (c *Client) VerifyAttestation(
 		}
 		rtmrs := tdxMeasurement.GetFields()
 
+		// Validate multiplatform measurement format
+		_, ok := predicateFields["snp_measurement"]
+		if !ok {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no snp measurement")
+		}
+		_, ok = rtmrs["rtmr1"]
+		if !ok {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no rtmr1")
+		}
+		_, ok = rtmrs["rtmr2"]
+		if !ok {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no rtmr2")
+		}
+
 		return &attestation.Measurement{
 			Type: measurementType,
 			Registers: []string{
