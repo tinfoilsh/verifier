@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/tinfoilsh/verifier/util"
 )
 
-// FetchLatestDigest gets the latest release and attestation digest of a repo
-func FetchLatestDigest(repo string) (string, error) {
+// FetchLatestTag fetches the latest tag for a repo
+func FetchLatestTag(repo string) (string, error) {
 	url := "https://api-github-proxy.tinfoil.sh/repos/" + repo + "/releases/latest"
 	releaseResponse, _, err := util.Get(url)
 	if err != nil {
@@ -27,14 +26,12 @@ func FetchLatestDigest(repo string) (string, error) {
 		return "", err
 	}
 
-	// Backwards compatibility for old EIF releases
-	eifRegex := regexp.MustCompile(`EIF hash: ([a-fA-F0-9]{64})`)
-	matches := eifRegex.FindStringSubmatch(responseJSON.Body)
-	if len(matches) > 1 {
-		return matches[1], nil
-	}
+	return responseJSON.TagName, nil
+}
 
-	url = fmt.Sprintf(`https://api-github-proxy.tinfoil.sh/%s/releases/download/%s/tinfoil.hash`, repo, responseJSON.TagName)
+// FetchDigest fetches the attestation digest for a given repo and tag
+func FetchDigest(repo, tag string) (string, error) {
+	url := fmt.Sprintf(`https://api-github-proxy.tinfoil.sh/%s/releases/download/%s/tinfoil.hash`, repo, tag)
 	digestResp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -48,6 +45,19 @@ func FetchLatestDigest(repo string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(digest)), nil
+}
+
+// FetchLatestDigest gets the latest release, tag, and attestation digest of a repo
+func FetchLatestDigest(repo string) (string, error) {
+	latestTag, err := FetchLatestTag(repo)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch latest tag: %v", err)
+	}
+	digest, err := FetchDigest(repo, latestTag)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch digest for %s@%s: %v", repo, latestTag, err)
+	}
+	return digest, nil
 }
 
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
