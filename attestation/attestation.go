@@ -48,6 +48,14 @@ type Verification struct {
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
+	// Base case: if both measurements are multi-platform, compare directly
+	if m.Type == SnpTdxMultiPlatformV1 && other.Type == SnpTdxMultiPlatformV1 {
+		if !slices.Equal(m.Registers, other.Registers) {
+			return ErrMeasurementMismatch
+		}
+		return nil
+	}
+
 	// Flip comparison order for multi-platform measurements
 	if other.Type == SnpTdxMultiPlatformV1 {
 		return other.Equals(m)

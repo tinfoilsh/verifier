@@ -145,6 +145,28 @@ func TestMeasurementEquals(t *testing.T) {
 				Type:      SevGuestV1,
 				Registers: []string{"sevsnp_other"},
 			},
+		}, {
+			name:    "multi-platform to multi-platform equal",
+			wantErr: nil,
+			m1: &Measurement{
+				Type:      SnpTdxMultiPlatformV1,
+				Registers: []string{"sevsnp", "rtmr1", "rtmr2"},
+			},
+			m2: &Measurement{
+				Type:      SnpTdxMultiPlatformV1,
+				Registers: []string{"sevsnp", "rtmr1", "rtmr2"},
+			},
+		}, {
+			name:    "multi-platform to multi-platform mismatch",
+			wantErr: ErrMeasurementMismatch,
+			m1: &Measurement{
+				Type:      SnpTdxMultiPlatformV1,
+				Registers: []string{"sevsnp", "rtmr1", "rtmr2"},
+			},
+			m2: &Measurement{
+				Type:      SnpTdxMultiPlatformV1,
+				Registers: []string{"sevsnp_other", "rtmr1", "rtmr2"},
+			},
 		},
 	}
 
