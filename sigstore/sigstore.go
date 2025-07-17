@@ -54,6 +54,10 @@ func FetchTrustRoot() ([]byte, error) {
 }
 
 func (c *Client) VerifyBundle(bundleJSON []byte, repo, hexDigest string) (*verify.VerificationResult, error) {
+	if c.trustRoot == nil {
+		return nil, fmt.Errorf("trust root is not set")
+	}
+
 	var b bundle.Bundle
 	b.Bundle = new(protobundle.Bundle)
 	if err := b.UnmarshalJSON(bundleJSON); err != nil {
