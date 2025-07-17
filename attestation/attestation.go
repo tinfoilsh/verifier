@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strings"
 )
 
 type PredicateType string
@@ -33,35 +32,54 @@ const (
 var (
 	ErrFormatMismatch      = errors.New("attestation format mismatch")
 	ErrMeasurementMismatch = errors.New("measurement mismatch")
+	ErrRtmr1Mismatch       = errors.New("RTMR1 mismatch")
+	ErrRtmr2Mismatch       = errors.New("RTMR2 mismatch")
+	ErrFewRegisters        = errors.New("fewer registers than expected")
 )
 
 type Measurement struct {
-	Type      PredicateType
-	Registers []string
+	Type      PredicateType `json:"type"`
+	Registers []string      `json:"registers"`
 }
 
 type Verification struct {
-	Measurement *Measurement
-	PublicKeyFP string
-}
-
-// Fingerprint computes the SHA-256 hash of all measurements, or returns the single measurement if there is only one
-func (m *Measurement) Fingerprint() string {
-	if len(m.Registers) == 1 {
-		return m.Registers[0]
-	}
-
-	all := string(m.Type) + strings.Join(m.Registers, "")
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
+	Measurement *Measurement `json:"measurement"`
+	PublicKeyFP string       `json:"public_key"`
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
-	if m.Type != other.Type {
-		return ErrFormatMismatch
+	// Flip comparison order for multi-platform measurements
+	if other.Type == SnpTdxMultiPlatformV1 {
+		return other.Equals(m)
 	}
 
 	if m.Type == SnpTdxMultiPlatformV1 {
-		return errors.New("direct multiplatform measurement comparison is not supported")
+		switch other.Type {
+		case TdxGuestV1:
+			if len(m.Registers) < 3 || len(other.Registers) < 4 {
+				return ErrFewRegisters
+			}
+
+			expectedRtmr1 := m.Registers[1] // 0 is SNP
+			expectedRtmr2 := m.Registers[2]
+
+			actualRtmr1 := other.Registers[2] // 0 is MRTD, 1 is RTMR0
+			actualRtmr2 := other.Registers[3]
+
+			if expectedRtmr1 != actualRtmr1 {
+				return ErrRtmr1Mismatch
+			}
+			if expectedRtmr2 != actualRtmr2 {
+				return ErrRtmr2Mismatch
+			}
+			return nil
+		default:
+			return fmt.Errorf("unsupported enclave platform for multi-platform code measurements: %s", other.Type)
+		}
+	}
+
+	if m.Type != other.Type {
+		return ErrFormatMismatch
 	}
 
 	if !slices.Equal(m.Registers, other.Registers) {
@@ -102,28 +120,28 @@ func (d *Document) Hash() string {
 }
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
-func (d *Document) Verify(hardwareMeasurements []*HardwareMeasurement) (*Verification, error) {
+func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
 	case AWSNitroEnclaveV1:
 		return verifyNitroAttestation(d.Body)
 	case SevGuestV1:
 		return verifySevAttestation(d.Body)
 	case TdxGuestV1:
-		return verifyTdxAttestation(d.Body, hardwareMeasurements)
+		return verifyTdxAttestation(d.Body)
 	default:
 		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
 }
 
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
-func VerifyAttestationJSON(j []byte, hardwareMeasurements []*HardwareMeasurement) (*Verification, error) {
+func VerifyAttestationJSON(j []byte) (*Verification, error) {
 	var doc Document
 	err := json.Unmarshal(j, &doc)
 	if err != nil {
 		return nil, err
 	}
 
-	return doc.Verify(hardwareMeasurements)
+	return doc.Verify()
 }
 
 // KeyFP returns the fingerprint of a given ECDSA public key
