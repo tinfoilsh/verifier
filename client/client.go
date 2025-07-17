@@ -103,7 +103,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 
 	// Check if the certificate fingerprint matches the one in the verification
 	if certFP != enclaveVerification.PublicKeyFP {
-		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, enclaveVerification.PublicKeyFP)
+		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
 	}
 
 	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {
