@@ -73,6 +73,14 @@ func (m *Measurement) Equals(other *Measurement) error {
 				return ErrRtmr2Mismatch
 			}
 			return nil
+		case SevGuestV1:
+			expectedSevSnp := m.Registers[0]
+			actualSevSnp := other.Registers[0]
+
+			if expectedSevSnp != actualSevSnp {
+				return ErrMeasurementMismatch
+			}
+			return nil
 		default:
 			return fmt.Errorf("unsupported enclave platform for multi-platform code measurements: %s", other.Type)
 		}

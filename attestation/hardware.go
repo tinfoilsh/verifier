@@ -13,6 +13,8 @@ type HardwareMeasurement struct {
 
 // VerifyHardware compares an enclave measurement against the set of valid hardware measurements
 func VerifyHardware(measurements []*HardwareMeasurement, enclaveMeasurement *Measurement) (*HardwareMeasurement, error) {
+	// Measurement equality check already supports multi-platform source measurements,
+	// but this function doesn't support hardware measurements, so fail out if we try to use it incorrectly.
 	if enclaveMeasurement.Type != TdxGuestV1 {
 		return nil, fmt.Errorf("unsupported enclave platform: %s", enclaveMeasurement.Type)
 	}
