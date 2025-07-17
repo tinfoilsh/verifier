@@ -19,6 +19,10 @@ func VerifyHardware(measurements []*HardwareMeasurement, enclaveMeasurement *Mea
 		return nil, fmt.Errorf("unsupported enclave platform: %s", enclaveMeasurement.Type)
 	}
 
+	if len(enclaveMeasurement.Registers) < 2 {
+		return nil, fmt.Errorf("enclave provided fewer registers than expected: %d", len(enclaveMeasurement.Registers))
+	}
+
 	for _, measurement := range measurements {
 		if (measurement.MRTD == enclaveMeasurement.Registers[0]) && (measurement.RTMR0 == enclaveMeasurement.Registers[1]) {
 			return measurement, nil

@@ -21,5 +21,6 @@ func Get(url string) ([]byte, map[string][]string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 	return body, resp.Header, nil
 }
