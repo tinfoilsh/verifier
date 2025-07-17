@@ -44,6 +44,10 @@ func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
+	if len(report.TdQuoteBody.Rtmrs) != 4 {
+		return nil, fmt.Errorf("expected 4 RTMRs, got %d", len(report.TdQuoteBody.Rtmrs))
+	}
+
 	measurement := &Measurement{
 		Type: TdxGuestV1,
 		Registers: []string{
@@ -51,6 +55,7 @@ func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
 			hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
 			hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
 			hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
+			hex.EncodeToString(report.TdQuoteBody.Rtmrs[3]),
 		},
 	}
 

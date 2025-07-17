@@ -26,9 +26,10 @@ func TestTdxVerify(t *testing.T) {
 
 	require.NotNil(t, verification)
 	assert.Equal(t, "d9381c169257c7558bc75d76a9e2fb90452071d7f756ef5122c88903bbb46062", verification.PublicKeyFP)
-	assert.Equal(t, 4, len(verification.Measurement.Registers))
-	assert.Equal(t, "7357a10d2e2724dffe68813e3cc4cfcde6814d749f2fb62e3953e54f6e0b50a219786afe2cd478f684b52c61837e1114", verification.Measurement.Registers[0])
-	assert.Equal(t, "c7ced7785890f68144887bc49e61436214d063d72a5946028b3d3ef63e76327db2883cf644b80b849d643acd79303ad6", verification.Measurement.Registers[1])
-	assert.Equal(t, "10a05f3fba7d66babcc8a8143451443a564963ced77c7fa126f004857753f87c318720e29e9ed2f46c8753b44b01004d", verification.Measurement.Registers[2])
-	assert.Equal(t, "fc744ecc4550ec0ea6c25deaa777bd2ed6e5feda35ac1e88a2c2b6e62584a8ad47a93526638de3b97fe45cd67cb5339f", verification.Measurement.Registers[3])
+	assert.Equal(t, 5, len(verification.Measurement.Registers))
+	assert.Equal(t, "7357a10d2e2724dffe68813e3cc4cfcde6814d749f2fb62e3953e54f6e0b50a219786afe2cd478f684b52c61837e1114", verification.Measurement.Registers[0]) // MRTD
+	assert.Equal(t, "c7ced7785890f68144887bc49e61436214d063d72a5946028b3d3ef63e76327db2883cf644b80b849d643acd79303ad6", verification.Measurement.Registers[1]) // RTMR0
+	assert.Equal(t, "10a05f3fba7d66babcc8a8143451443a564963ced77c7fa126f004857753f87c318720e29e9ed2f46c8753b44b01004d", verification.Measurement.Registers[2]) // RTMR1
+	assert.Equal(t, "fc744ecc4550ec0ea6c25deaa777bd2ed6e5feda35ac1e88a2c2b6e62584a8ad47a93526638de3b97fe45cd67cb5339f", verification.Measurement.Registers[3]) // RTMR2
+	assert.Equal(t, "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", verification.Measurement.Registers[4]) // RTMR3
 }
