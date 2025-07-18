@@ -12,11 +12,32 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"github.com/tinfoilsh/verifier/attestation"
+	"github.com/tinfoilsh/verifier/github"
 )
 
 const (
 	oidcIssuer = "https://token.actions.githubusercontent.com"
 )
+
+type Client struct {
+	trustRoot *root.TrustedRoot
+}
+
+func NewClient() (*Client, error) {
+	trustRootJSON, err := FetchTrustRoot()
+	if err != nil {
+		return nil, fmt.Errorf("fetching trust root: %w", err)
+	}
+
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("parsing trust root: %w", err)
+	}
+
+	return &Client{
+		trustRoot: trustRoot,
+	}, nil
+}
 
 // FetchTrustRoot fetches the trust root from the Sigstore TUF repo
 func FetchTrustRoot() ([]byte, error) {
@@ -32,15 +53,9 @@ func FetchTrustRoot() ([]byte, error) {
 	return client.GetTarget("trusted_root.json")
 }
 
-// VerifyAttestation verifies the attested measurements of an enclave image
-// against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
-func VerifyAttestation(
-	trustRootJSON, bundleJSON []byte,
-	hexDigest, repo string,
-) (*attestation.Measurement, error) {
-	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
-	if err != nil {
-		return nil, fmt.Errorf("parsing trust root: %w", err)
+func (c *Client) VerifyBundle(bundleJSON []byte, repo, hexDigest string) (*verify.VerificationResult, error) {
+	if c.trustRoot == nil {
+		return nil, fmt.Errorf("trust root is not set")
 	}
 
 	var b bundle.Bundle
@@ -50,7 +65,7 @@ func VerifyAttestation(
 	}
 
 	verifier, err := verify.NewSignedEntityVerifier(
-		trustRoot,
+		c.trustRoot,
 		verify.WithSignedCertificateTimestamps(1),
 		verify.WithTransparencyLog(1),
 		verify.WithObserverTimestamps(1),
@@ -85,6 +100,18 @@ func VerifyAttestation(
 		return nil, fmt.Errorf("verifying: %w", err)
 	}
 
+	return result, nil
+}
+
+func (c *Client) VerifyAttestation(
+	bundleJSON []byte,
+	hexDigest, repo string,
+) (*attestation.Measurement, error) {
+	result, err := c.VerifyBundle(bundleJSON, repo, hexDigest)
+	if err != nil {
+		return nil, fmt.Errorf("verifying bundle: %w", err)
+	}
+
 	predicate := result.Statement.Predicate
 	predicateFields := predicate.Fields
 
@@ -104,7 +131,121 @@ func VerifyAttestation(
 			Type:      measurementType,
 			Registers: []string{predicateFields["measurement"].GetStringValue()},
 		}, nil
+	case attestation.SnpTdxMultiPlatformV1:
+		tdxMeasurementField, ok := predicateFields["tdx_measurement"]
+		if !ok {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no tdx measurement")
+		}
+		if tdxMeasurementField == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: tdx measurement is nil")
+		}
+		tdxMeasurement := tdxMeasurementField.GetStructValue()
+		if tdxMeasurement == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: tdx measurement is not a struct")
+		}
+		rtmrs := tdxMeasurement.GetFields()
+
+		// Validate multiplatform measurement format
+		snpMeasurement, ok := predicateFields["snp_measurement"]
+		if !ok {
+			return nil, fmt.Errorf("invalid multiplatform measurement: no snp measurement")
+		}
+		if snpMeasurement == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: snp measurement is nil")
+		}
+
+		for _, rtmr := range []string{"rtmr1", "rtmr2"} {
+			v, ok := rtmrs[rtmr]
+			if !ok {
+				return nil, fmt.Errorf("invalid multiplatform measurement: no %s", rtmr)
+			}
+			if v == nil {
+				return nil, fmt.Errorf("invalid multiplatform measurement: %s is nil", rtmr)
+			}
+		}
+
+		return &attestation.Measurement{
+			Type: measurementType,
+			Registers: []string{
+				predicateFields["snp_measurement"].GetStringValue(),
+				rtmrs["rtmr1"].GetStringValue(),
+				rtmrs["rtmr2"].GetStringValue(),
+			},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported predicate type: %s", result.Statement.PredicateType)
 	}
+}
+
+// FetchHardwareMeasurements fetches the MRTD and RTMR0 from a given hardware repo
+func (c *Client) FetchHardwareMeasurements(repo, digest string) ([]*attestation.HardwareMeasurement, error) {
+	sigstoreBundle, err := github.FetchAttestationBundle(repo, digest)
+	if err != nil {
+		return nil, err
+	}
+
+	bundle, err := c.VerifyBundle(sigstoreBundle, repo, digest)
+	if err != nil {
+		return nil, err
+	}
+
+	predicate := bundle.Statement.Predicate
+	predicateType := bundle.Statement.PredicateType
+
+	if attestation.PredicateType(predicateType) != attestation.HardwareMeasurementsV1 {
+		return nil, fmt.Errorf("unexpected predicate type: %s", predicateType)
+	}
+
+	var measurements []*attestation.HardwareMeasurement
+	for k, v := range predicate.Fields {
+		structValue := v.GetStructValue()
+		if structValue == nil {
+			return nil, fmt.Errorf("invalid hardware measurement")
+		}
+
+		fields := structValue.Fields
+
+		for _, field := range []string{"mrtd", "rtmr0"} {
+			v, ok := fields[field]
+			if !ok {
+				return nil, fmt.Errorf("invalid hardware measurement: no %s", field)
+			}
+			if v == nil {
+				return nil, fmt.Errorf("invalid hardware measurement: %s is nil", field)
+			}
+		}
+
+		measurements = append(measurements, &attestation.HardwareMeasurement{
+			ID:    fmt.Sprintf("%s@%s", k, digest),
+			MRTD:  fields["mrtd"].GetStringValue(),
+			RTMR0: fields["rtmr0"].GetStringValue(),
+		})
+	}
+	return measurements, nil
+}
+
+// VerifyAttestation verifies the attested measurements of an enclave image
+// against a trusted root (Sigstore) and returns the measurement payload contained in the DSSE.
+// Deprecated: Use client.VerifyAttestation instead.
+func VerifyAttestation(
+	trustRootJSON, bundleJSON []byte,
+	hexDigest, repo string,
+) (*attestation.Measurement, error) {
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("parsing trust root: %w", err)
+	}
+	client := &Client{trustRoot: trustRoot}
+	return client.VerifyAttestation(bundleJSON, hexDigest, repo)
+}
+
+// LatestHardwareMeasurements fetches the latest hardware measurements from GitHub+Sigstore
+func (c *Client) LatestHardwareMeasurements() ([]*attestation.HardwareMeasurement, error) {
+	const repo = "tinfoilsh/hardware-measurements"
+	digest, err := github.FetchLatestDigest(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.FetchHardwareMeasurements(repo, digest)
 }

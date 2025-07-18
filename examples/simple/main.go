@@ -30,13 +30,19 @@ func main() {
 	}
 
 	log.Println("Fetching SigStore trust root")
-	trustRootJSON, err := sigstore.FetchTrustRoot()
+	sigstoreClient, err := sigstore.NewClient()
 	if err != nil {
 		log.Fatalf("failed to fetch trust root: %v", err)
 	}
 
+	log.Println("Fetching latest hardware measurements")
+	hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
+	if err != nil {
+		log.Fatalf("failed to fetch hardware measurements: %v", err)
+	}
+
 	log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
-	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, digest, *repo)
+	codeMeasurements, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 	if err != nil {
 		log.Fatalf("failed to verify attested measurements: %v", err)
 	}
@@ -53,12 +59,22 @@ func main() {
 		log.Fatalf("failed to verify enclave measurements: %v", err)
 	}
 
+	if enclaveAttestation.Format == attestation.TdxGuestV1 {
+		log.Println("Verifying hardware measurements")
+		hwMeasurement, err := attestation.VerifyHardware(hwMeasurements, verification.Measurement)
+		if err != nil {
+			log.Fatalf("failed to verify hardware measurements: %v", err)
+		}
+		log.Printf("Matched hardware measurement: %s", hwMeasurement.ID)
+	}
+
 	log.Println("Comparing measurements")
 	if err := codeMeasurements.Equals(verification.Measurement); err != nil {
-		log.Fatalf("code measurements do not match: %v", err)
+		log.Fatalf("Measurements do not match: %v", err)
 	}
 
 	log.Println("Verification successful!")
 	log.Printf("Public key fingerprint: %s", verification.PublicKeyFP)
-	log.Printf("Measurement: %s", codeMeasurements.Fingerprint())
+	log.Printf("Code Measurement: %+v", codeMeasurements)
+	log.Printf("Enclave Measurement: %+v", verification.Measurement)
 }

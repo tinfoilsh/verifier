@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/tinfoilsh/verifier/attestation"
 	"github.com/tinfoilsh/verifier/github"
@@ -13,9 +14,10 @@ import (
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
-	PublicKey   string
-	Digest      string
-	Measurement string
+	PublicKey          string
+	Digest             string
+	CodeMeasurement    *attestation.Measurement
+	EnclaveMeasurement *attestation.Measurement
 }
 
 type SecureClient struct {
@@ -43,17 +45,17 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		return nil, fmt.Errorf("failed to fetch latest release: %v", err)
 	}
 
+	sigstoreClient, err := sigstore.NewClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+	}
+
 	sigstoreBundle, err := github.FetchAttestationBundle(s.repo, digest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
 	}
 
-	trustRootJSON, err := sigstore.FetchTrustRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch trust root: %v", err)
-	}
-
-	codeMeasurements, err := sigstore.VerifyAttestation(trustRootJSON, sigstoreBundle, digest, s.repo)
+	codeMeasurement, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, s.repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
 	}
@@ -62,13 +64,34 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch enclave measurements: %v", err)
 	}
-	verification, err := enclaveAttestation.Verify()
+	enclaveVerification, err := enclaveAttestation.Verify()
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
 	}
 
+	// Fetch hardware platform measurements if required
+	if enclaveAttestation.Format == attestation.TdxGuestV1 {
+		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch TDX platform measurements: %v", err)
+		}
+		_, err = attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify hardware measurements: %v", err)
+		}
+	}
+
 	// Get cert from TLS connection
-	conn, err := tls.Dial("tcp", s.enclave+":443", &tls.Config{})
+	var addr string
+	if strings.Contains(s.enclave, ":") {
+		// Enclave already has a port specified
+		addr = s.enclave
+	} else {
+		// Append default HTTPS port
+		addr = s.enclave + ":443"
+	}
+
+	conn, err := tls.Dial("tcp", addr, &tls.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to enclave: %v", err)
 	}
@@ -79,17 +102,19 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	// Check if the certificate fingerprint matches the one in the verification
-	if certFP != verification.PublicKeyFP {
-		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", certFP, verification.PublicKeyFP)
+	if certFP != enclaveVerification.PublicKeyFP {
+		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
 	}
 
-	err = codeMeasurements.Equals(verification.Measurement)
-	if err == nil {
-		s.groundTruth = &GroundTruth{
-			PublicKey:   verification.PublicKeyFP,
-			Digest:      digest,
-			Measurement: codeMeasurements.Fingerprint(),
-		}
+	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {
+		return nil, err
+	}
+
+	s.groundTruth = &GroundTruth{
+		PublicKey:          enclaveVerification.PublicKeyFP,
+		Digest:             digest,
+		CodeMeasurement:    codeMeasurement,
+		EnclaveMeasurement: enclaveVerification.Measurement,
 	}
 	return s.groundTruth, err
 }

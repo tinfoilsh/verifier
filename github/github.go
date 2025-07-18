@@ -13,7 +13,7 @@ import (
 // FetchLatestTag fetches the latest tag for a repo
 func FetchLatestTag(repo string) (string, error) {
 	url := "https://api-github-proxy.tinfoil.sh/repos/" + repo + "/releases/latest"
-	releaseResponse, err := util.Get(url)
+	releaseResponse, _, err := util.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +63,7 @@ func FetchLatestDigest(repo string) (string, error) {
 // FetchAttestationBundle fetches the sigstore bundle from a repo for a given repo and EIF hash
 func FetchAttestationBundle(repo, digest string) ([]byte, error) {
 	url := "https://gh-attestation-proxy.tinfoil.sh/repos/" + repo + "/attestations/sha256:" + digest
-	bundleResponse, err := util.Get(url)
+	bundleResponse, _, err := util.Get(url)
 	if err != nil {
 		return nil, err
 	}

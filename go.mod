@@ -7,7 +7,7 @@ require (
 	github.com/blocky/nitrite v0.0.1
 	github.com/google/go-sev-guest v0.8.0
 	github.com/google/go-tdx-guest v0.3.1
-	github.com/sigstore/protobuf-specs v0.4.2
+	github.com/sigstore/protobuf-specs v0.4.1
 	github.com/sigstore/sigstore-go v0.7.2
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.2
@@ -97,4 +97,4 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 )
 
-replace github.com/google/go-sev-guest => github.com/jraman567/go-sev-guest v0.0.0-20250117204014-6339110611c9
+replace github.com/google/go-sev-guest => github.com/tinfoilsh/go-sev-guest v0.0.0-20250704193550-c725e6216008
