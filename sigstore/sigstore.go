@@ -132,24 +132,36 @@ func (c *Client) VerifyAttestation(
 			Registers: []string{predicateFields["measurement"].GetStringValue()},
 		}, nil
 	case attestation.SnpTdxMultiPlatformV1:
-		tdxMeasurement := predicateFields["tdx_measurement"].GetStructValue()
-		if tdxMeasurement == nil {
+		tdxMeasurementField, ok := predicateFields["tdx_measurement"]
+		if !ok {
 			return nil, fmt.Errorf("invalid multiplatform measurement: no tdx measurement")
+		}
+		if tdxMeasurementField == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: tdx measurement is nil")
+		}
+		tdxMeasurement := tdxMeasurementField.GetStructValue()
+		if tdxMeasurement == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: tdx measurement is not a struct")
 		}
 		rtmrs := tdxMeasurement.GetFields()
 
 		// Validate multiplatform measurement format
-		_, ok := predicateFields["snp_measurement"]
+		snpMeasurement, ok := predicateFields["snp_measurement"]
 		if !ok {
 			return nil, fmt.Errorf("invalid multiplatform measurement: no snp measurement")
 		}
-		_, ok = rtmrs["rtmr1"]
-		if !ok {
-			return nil, fmt.Errorf("invalid multiplatform measurement: no rtmr1")
+		if snpMeasurement == nil {
+			return nil, fmt.Errorf("invalid multiplatform measurement: snp measurement is nil")
 		}
-		_, ok = rtmrs["rtmr2"]
-		if !ok {
-			return nil, fmt.Errorf("invalid multiplatform measurement: no rtmr2")
+
+		for _, rtmr := range []string{"rtmr1", "rtmr2"} {
+			v, ok := rtmrs[rtmr]
+			if !ok {
+				return nil, fmt.Errorf("invalid multiplatform measurement: no %s", rtmr)
+			}
+			if v == nil {
+				return nil, fmt.Errorf("invalid multiplatform measurement: %s is nil", rtmr)
+			}
 		}
 
 		return &attestation.Measurement{
@@ -188,10 +200,21 @@ func (c *Client) FetchHardwareMeasurements(repo, digest string) ([]*attestation.
 	for k, v := range predicate.Fields {
 		structValue := v.GetStructValue()
 		if structValue == nil {
-			continue
+			return nil, fmt.Errorf("invalid hardware measurement")
 		}
 
 		fields := structValue.Fields
+
+		for _, field := range []string{"mrtd", "rtmr0"} {
+			v, ok := fields[field]
+			if !ok {
+				return nil, fmt.Errorf("invalid hardware measurement: no %s", field)
+			}
+			if v == nil {
+				return nil, fmt.Errorf("invalid hardware measurement: %s is nil", field)
+			}
+		}
+
 		measurements = append(measurements, &attestation.HardwareMeasurement{
 			ID:    fmt.Sprintf("%s@%s", k, digest),
 			MRTD:  fields["mrtd"].GetStringValue(),
