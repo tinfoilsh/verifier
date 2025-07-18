@@ -17,10 +17,10 @@ func Get(url string) ([]byte, map[string][]string, error) {
 	if resp.StatusCode > 299 {
 		return nil, nil, fmt.Errorf("HTTP GET %s: %d %s", url, resp.StatusCode, resp.Status)
 	}
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 	return body, resp.Header, nil
 }
