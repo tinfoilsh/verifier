@@ -33,6 +33,16 @@ func NewSecureClient(enclave, repo string) *SecureClient {
 	}
 }
 
+// Enclave returns the enclave URL
+func (s *SecureClient) Enclave() string {
+	return s.enclave
+}
+
+// Repo returns the repository URL
+func (s *SecureClient) Repo() string {
+	return s.repo
+}
+
 // GroundTruth returns the last verified enclave state
 func (s *SecureClient) GroundTruth() *GroundTruth {
 	return s.groundTruth
