@@ -51,11 +51,11 @@ func (s *SecureClient) GroundTruth() *GroundTruth {
 
 // GroundTruthJSON returns the ground truth as a JSON string
 func (s *SecureClient) GroundTruthJSON() (string, error) {
-	json, err := json.Marshal(s.groundTruth)
+	encoded, err := json.Marshal(s.groundTruth)
 	if err != nil {
 		return "", err
 	}
-	return string(json), nil
+	return string(encoded), nil
 }
 
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
