@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,10 +15,10 @@ import (
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
-	PublicKey          string
-	Digest             string
-	CodeMeasurement    *attestation.Measurement
-	EnclaveMeasurement *attestation.Measurement
+	PublicKey          string                   `json:"public_key"`
+	Digest             string                   `json:"digest"`
+	CodeMeasurement    *attestation.Measurement `json:"code_measurement"`
+	EnclaveMeasurement *attestation.Measurement `json:"enclave_measurement"`
 }
 
 type SecureClient struct {
@@ -46,6 +47,15 @@ func (s *SecureClient) Repo() string {
 // GroundTruth returns the last verified enclave state
 func (s *SecureClient) GroundTruth() *GroundTruth {
 	return s.groundTruth
+}
+
+// GroundTruthJSON returns the ground truth as a JSON string
+func (s *SecureClient) GroundTruthJSON() (string, error) {
+	json, err := json.Marshal(s.groundTruth)
+	if err != nil {
+		return "", err
+	}
+	return string(json), nil
 }
 
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
