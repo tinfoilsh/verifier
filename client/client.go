@@ -19,6 +19,7 @@ type GroundTruth struct {
 	Digest             string                   `json:"digest"`
 	CodeMeasurement    *attestation.Measurement `json:"code_measurement"`
 	EnclaveMeasurement *attestation.Measurement `json:"enclave_measurement"`
+	HardwarePlatform   string                   `json:"hardware_platform,omitempty"`
 }
 
 type SecureClient struct {
@@ -90,15 +91,17 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	// Fetch hardware platform measurements if required
+	var hwPlatformID string
 	if enclaveAttestation.Format == attestation.TdxGuestV1 {
 		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch TDX platform measurements: %v", err)
 		}
-		_, err = attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
+		matchedHwMeasurement, err := attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify hardware measurements: %v", err)
 		}
+		hwPlatformID = matchedHwMeasurement.ID
 	}
 
 	// Get cert from TLS connection
@@ -135,6 +138,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		Digest:             digest,
 		CodeMeasurement:    codeMeasurement,
 		EnclaveMeasurement: enclaveVerification.Measurement,
+		HardwarePlatform:   hwPlatformID,
 	}
 	return s.groundTruth, err
 }
