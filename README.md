@@ -4,6 +4,14 @@ Tinfoil's client-side portable remote attestation verifier and secure HTTP clien
 
 [![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
+Note:
+
+We currently rely on a specific feature in `go-sev-guest` that hasn't been upstreamed yet:
+
+```go
+go mod edit -replace github.com/google/go-sev-guest=github.com/tinfoilsh/go-sev-guest@v0.0.0-20250704193550-c725e6216008
+```
+
 ## Quick Start: Use the Secure HTTP Client
 
 ```go
