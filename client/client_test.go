@@ -1,9 +1,11 @@
 package client
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tinfoilsh/verifier/attestation"
 )
 
 func TestVerify(t *testing.T) {
@@ -23,4 +25,30 @@ func TestVerify(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestClientGroundTruthJSON(t *testing.T) {
+	gt := &GroundTruth{
+		PublicKey: "pubkey",
+		Digest:    "feabcd",
+		CodeMeasurement: &attestation.Measurement{
+			Type:      attestation.SnpTdxMultiPlatformV1,
+			Registers: []string{"a", "b"},
+		},
+		EnclaveMeasurement: &attestation.Measurement{
+			Type:      attestation.TdxGuestV1,
+			Registers: []string{"a"},
+		},
+	}
+	client := &SecureClient{
+		groundTruth: gt,
+	}
+
+	encoded, err := client.GroundTruthJSON()
+	assert.NoError(t, err)
+
+	// Decode and compare
+	var gt2 GroundTruth
+	assert.NoError(t, json.Unmarshal([]byte(encoded), &gt2))
+	assert.Equal(t, gt, &gt2)
 }
