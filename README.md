@@ -1,85 +1,79 @@
 # Tinfoil Verifier
 
-Tinfoil's client-side portable remote attestation verifier and secure HTTP client.
+Portable remote-attestation verifier & secure HTTP client for enclave-backed services.
 
 [![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
-Note:
+## Overview
+Tinfoil Verifier is a Go library that verifies the integrity of remote enclaves (AMD SEV-SNP, Intel TDX & AWS Nitro) and binds that verification to TLS connections. It also ships a drop-in secure `http.Client` that performs attestation transparently.
 
-We currently rely on a specific feature in `go-sev-guest` that hasn't been upstreamed yet:
+## Features
+- 🔒 **Hardware-rooted remote attestation** for SEV-SNP, TDX & Nitro Enclaves  
+- 📦 **Self-contained** with no external attestation service
+- 🕸 **Secure HTTP client** with automatic certificate pinning  
+- 🛡 **Sigstore integration** for reference measurements  
+- 🧑‍💻 **WASM build** for browser/nodejs  
 
-```go
-go mod edit -replace github.com/google/go-sev-guest=github.com/tinfoilsh/go-sev-guest@v0.0.0-20250704193550-c725e6216008
+## Installation
+```bash
+go get github.com/tinfoilsh/verifier@latest
 ```
 
-## Quick Start: Use the Secure HTTP Client
+> **Note**  Until `go-sev-guest` upstreams a required feature, add the temporary replace directive:
+> ```bash
+> go mod edit -replace github.com/google/go-sev-guest=github.com/tinfoilsh/go-sev-guest@v0.0.0-20250704193550-c725e6216008
+> ```
 
+## Quick Start
 ```go
- // Create a client for a specific enclave and code repository
-tinfoilClient := client.NewSecureClient("enclave.example.com", "org/repo")
+import "github.com/tinfoilsh/verifier/client"
 
-// Make HTTP requests - verification happens automatically
+// 1. Create a client for your enclave + GitHub repo
+tinfoilClient := client.NewSecureClient(
+    "enclave.example.com", // Hostname of the enclave
+    "org/repo",            // Repository containing attestation bundle
+)
+
+// 2. Perform HTTP requests – attestation happens automatically
 resp, err := tinfoilClient.Get("/api/data", nil)
 if err != nil {
     log.Fatalf("request failed: %v", err)
 }
+```
 
-// POST with headers and body
+To verify manually and expose the verification state:
+```go
+state, err := tinfoilClient.Verify() // ↳ returns *client.State with details
+```
+
+## Secure HTTP Client
+The `client` package wraps `net/http` and adds:
+1. **Attestation gate** – the first request verifies the enclave.
+2. **TLS pinning** – the enclave-generated certificate fingerprint is pinned for the session.
+3. **Round-tripping helpers** – convenience `Get`, `Post`, and generic `Do` methods.
+
+```go
 headers := map[string]string{"Content-Type": "application/json"}
-body := []byte(`{"key": "value"}`)
-resp, err := tinfoilClient.Post("/api/submit", headers, body)
+body    := []byte(`{"key": "value"}`)
+
+resp, err := cli.Post("/api/submit", headers, body)
+```
+
+For advanced usage retrieve the underlying `*http.Client`:
+```go
+httpClient, err := tinfoilClient.HTTPClient()
 ```
 
 ## Remote Attestation
+Tinfoil Verifier currently supports two platforms:
 
-Remote attestation provides cryptographic proof that an enclave is running unmodified code in a secure environment. The verifier supports attestation for **AMD SEV-SNP** and **AWS Nitro Enclaves**.
+| Platform       | Technique                                | Docs                                                  |
+|----------------|------------------------------------------|-------------------------------------------------------|
+| **AMD SEV-SNP**| VCEK certificates & SNP report validation | [AMD Spec](https://www.amd.com/en/developer/sev.html)  |
+| **AWS Nitro**  | NSM PCR measurements & signature checks  | [AWS Docs](https://docs.aws.amazon.com/enclaves/)      |
+| **Intel TDX** | TDX quote validation & TD report checks   | [Intel Guide](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html) |
 
-> **Remark:** The public key binds the HTTPS connection to the attested enclave, preventing MITM attacks. This binding ensures you're only connecting to an endpoint whose TLS key material was generated within the verified enclave. An attacker cannot intercept and proxy the connection since they cannot access the private key material.
-
-### How Attestation Works
-
-1. **Document Fetch** (`attestation.Fetch`)
-   - Connects to the enclave's attestation endpoint (`/.well-known/tinfoil-attestation`)
-   - Retrieves a signed attestation document and the TLS certificate fingerprint
-   - The document contains platform-specific proof of the enclave's state
-
-2. **Document Verification** (`Document.Verify`)
-   - Validates cryptographic signatures using platform trust roots:
-     - SEV: AMD's VCEK certificate chain (pinned in `/attestation/genoa_cert_chain.pem`)
-     - Nitro: AWS Nitro attestation verification via [nitrite](https://github.com/blocky/nitrite)
-   - Returns the enclave's measurements
-
-3. **Measurement Verification** (`sigstore.VerifyAttestation`)
-   - Compares the enclave's measurements against signed reference values
-   - Measurements represent the enclave's code and configuration:
-     - SEV: Launch measurement (hash of initial memory state)
-     - Nitro: PCR values (cumulative hash of loaded components)
-   - Reference values are fetched from Sigstore with transparency logging
-
-### Security Properties
-
-| Property         | Description                                                 |
-|------------------|-------------------------------------------------------------|
-| **Authenticity** | Attestations are signed by hardware-backed keys (AMD/AWS)   |
-| **Integrity**    | Measurements prove the enclave code hasn't been modified    |
-| **Identity**     | Certificate fingerprint binds HTTPS to the attested enclave |
-
-### Platform-Specific Details
-
-#### AMD SEV-SNP
-- Uses AMD's hardware-based attestation with VCEK certificates
-- Verifies CPU firmware version and security features
-- Launch measurement covers initial memory state and configuration
-- [AMD SEV-SNP Specification](https://www.amd.com/en/developer/sev.html)
-
-#### AWS Nitro
-- Uses AWS's Nitro Security Module (NSM) for attestation
-- PCR measurements track loaded components and configuration
-- Supports user data binding for additional context
-- [Nitro Enclaves Documentation](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
-
-### Verification Process
-
+### Verification Flow
 ```mermaid
 sequenceDiagram
     participant Client
@@ -88,111 +82,27 @@ sequenceDiagram
     participant Sigstore
 
     Client->>Enclave: Request attestation
-    Enclave->>Client: Attestation document + TLS fingerprint
-    Client->>TrustRoot: Verify signature
-    Client->>Sigstore: Fetch reference measurements
-    Client->>Client: Compare measurements
-```
-
-### Error Handling
-
-Attestation errors and their meanings:
-
-```go
-ErrFormatMismatch      // Attestation format mismatch
-ErrMeasurementMismatch // Measurements don't match
-```
-
-# GitHub Integration
-
-The verifier integrates with GitHub to fetch release information and attestation bundles:
-
-```go
-// Fetch latest release version and attestation digest
-version, digest, err := github.FetchLatestRelease("org/repo")
-
-// Fetch attestation bundle for verification
-bundle, err := github.FetchAttestationBundle("org/repo", digest)
-```
-
-The GitHub integration supports:
-
-- Fetching latest release information via GitHub API
-- Retrieving attestation digests from release assets
-- Downloading Sigstore attestation bundles for verification
-- Backwards compatibility with legacy EIF hash formats
-
-# Secure HTTP Client
-
-The verifier provides a secure HTTP client that ensures all requests are made to a verified enclave. This client:
-- Verifies the enclave's attestation before making requests
-- Pins TLS connections to the attested certificate
-
-### Security Properties
-
-| Property                | Description                                        |
-|-------------------------|----------------------------------------------------|
-| **Code Verification**   | Ensures enclave runs the expected code version     |
-| **Connection Security** | TLS with certificate pinning prevents MITM attacks |
-| **Request Isolation**   | Each client connects to exactly one enclave        |
-
-### Usage Examples
-
-```go
-// 1. Create a client
-client := client.NewSecureClient(
-    "enclave.example.com",  // Enclave hostname
-    "org/repo",            // GitHub repository
-)
-
-// 2. Manual verification (optional)
-state, err := client.Verify()
-if err != nil {
-    return fmt.Errorf("verification failed: %w", err)
-}
-
-// 3. Make HTTP requests
-resp, err := client.Get("/api/status", map[string]string{
-    "Authorization": "Bearer token",
-})
-
-// 4. Use response
-if resp.StatusCode == http.StatusOK {
-    var data MyData
-    json.Unmarshal(resp.Body, &data)
-}
-
-// 5. Get raw HTTP client (advanced usage)
-httpClient, err := client.HTTPClient()
-if err != nil {
-    return fmt.Errorf("failed to get HTTP client: %w", err)
-}
+    Enclave-->>Client: Report + TLS pubkey
+    Client->>TrustRoot: Verify signature chain
+    Client->>Sigstore: Fetch reference measurement
+    Client->>Client: Compare measurements & pin cert
 ```
 
 
-## JavaScript Verifier
-
-This verifier is written in Go but is then compiled to a WebAssembly module.
-See [verifier-js](https://github.com/tinfoilsh/verifier-js) for details. 
+## JavaScript / WASM
+The same verifier is compiled to **WebAssembly** and published as [`verifier-js`](https://github.com/tinfoilsh/verifier-js) for use in browser or Node.js.
 
 
-# Auditing the Verifier
+## Auditing Guide
+1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
+2. **Attestation logic** – start with [`/attestation/attestation.go`](attestation/attestation.go) and platform files:
+   - [`/attestation/sev.go`](attestation/sev.go)
+   - [`/attestation/nitro.go`](attestation/nitro.go)
+   - [`/attestation/tdx.go`](attestation/tdx.go)
+3. **Measurement matching** – inspect [`/sigstore/sigstore.go`](sigstore/sigstore.go)
 
-1. Audit the pinned certificate [/attestation/genoa_cert_chain.pem](/attestation/genoa_cert_chain.pem)
-    - Note: the certificate is taken from [AMD's KDS](https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain)
-2. Audit the attestation verification code in [/attestation/attestation.go](/attestation/attestation.go)
-   - Verify certificate chain validation
-   - Inspect the [/attestation/sev.go](/attestation/sev.go) or [/attestation/nitro.go](/attestation/nitro.go)
-3. Audit the measurement verification code in [/sigstore/sigstore.go](/sigstore/sigstore.go)
+## Reporting Vulnerabilities
 
-Note that for Nitro, we use [github.com/blocky/nitrite](https://github.com/blocky/nitrite) to verify the attestation document.
-For SEV, we implement the verification following [AMD's specification](https://www.amd.com/en/developer/sev.html).
-
-
-##  Reporting Vulnerabilities
-
-Please report security vulnerabilities by either:
-- Emailing [contact@tinfoil.sh](mailto:contact@tinfoil.sh)
-- Opening an issue on GitHub on this repository
+Please report security vulnerabilities by emailing [contact@tinfoil.sh](mailto:contact@tinfoil.sh)
 
 We aim to respond to security reports within 24 hours and will keep you updated on our progress.
