@@ -25,13 +25,27 @@ type GroundTruth struct {
 type SecureClient struct {
 	enclave, repo string
 
-	groundTruth *GroundTruth
+	// Pinned measurement mode
+	codeMeasurement      *attestation.Measurement
+	hardwareMeasurements []*attestation.HardwareMeasurement
+
+	groundTruth    *GroundTruth
+	sigstoreClient *sigstore.Client
 }
 
 func NewSecureClient(enclave, repo string) *SecureClient {
 	return &SecureClient{
 		enclave: enclave,
 		repo:    repo,
+	}
+}
+
+func NewPinnedSecureClient(enclave string, codeMeasurement *attestation.Measurement, hardwareMeasurements []*attestation.HardwareMeasurement) *SecureClient {
+	return &SecureClient{
+		enclave:              enclave,
+		repo:                 "pinned_no_repo",
+		codeMeasurement:      codeMeasurement,
+		hardwareMeasurements: hardwareMeasurements,
 	}
 }
 
@@ -59,26 +73,72 @@ func (s *SecureClient) GroundTruthJSON() (string, error) {
 	return string(encoded), nil
 }
 
+// enclaveValidPubKey checks if the public key covered by the attestation matches the public key of the enclave
+func enclaveValidPubKey(enclave string, enclaveVerification *attestation.Verification) error {
+	// Get cert from TLS connection
+	var addr string
+	if strings.Contains(enclave, ":") {
+		// Enclave already has a port specified
+		addr = enclave
+	} else {
+		// Append default HTTPS port
+		addr = enclave + ":443"
+	}
+
+	conn, err := tls.Dial("tcp", addr, &tls.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to connect to enclave: %v", err)
+	}
+	defer conn.Close()
+	certFP, err := attestation.ConnectionCertFP(conn.ConnectionState())
+	if err != nil {
+		return fmt.Errorf("failed to get certificate fingerprint: %v", err)
+	}
+
+	// Check if the certificate fingerprint matches the one in the verification
+	if certFP != enclaveVerification.PublicKeyFP {
+		return fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
+	}
+
+	return nil
+}
+
+func (s *SecureClient) getSigstoreClient() (*sigstore.Client, error) {
+	if s.sigstoreClient == nil {
+		var err error
+		s.sigstoreClient, err = sigstore.NewClient()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+		}
+	}
+	return s.sigstoreClient, nil
+}
+
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
 func (s *SecureClient) Verify() (*GroundTruth, error) {
-	digest, err := github.FetchLatestDigest(s.repo)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch latest release: %v", err)
-	}
+	var codeMeasurement = s.codeMeasurement
+	var digest = "pinned_no_digest"
+	if s.codeMeasurement == nil {
+		var err error
+		digest, err = github.FetchLatestDigest(s.repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch latest release: %v", err)
+		}
 
-	sigstoreClient, err := sigstore.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sigstore client: %v", err)
-	}
+		sigstoreClient, err := s.getSigstoreClient()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+		}
 
-	sigstoreBundle, err := github.FetchAttestationBundle(s.repo, digest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
-	}
+		sigstoreBundle, err := github.FetchAttestationBundle(s.repo, digest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
+		}
 
-	codeMeasurement, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, s.repo)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
+		codeMeasurement, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, s.repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
+		}
 	}
 
 	enclaveAttestation, err := attestation.Fetch(s.enclave)
@@ -93,10 +153,18 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	// Fetch hardware platform measurements if required
 	var hwPlatformID string
 	if enclaveAttestation.Format == attestation.TdxGuestV1 {
-		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch TDX platform measurements: %v", err)
+		var hwMeasurements = s.hardwareMeasurements
+		if len(s.hardwareMeasurements) == 0 {
+			sigstoreClient, err := s.getSigstoreClient()
+			if err != nil {
+				return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+			}
+			hwMeasurements, err = sigstoreClient.LatestHardwareMeasurements()
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch TDX platform measurements: %v", err)
+			}
 		}
+
 		matchedHwMeasurement, err := attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify hardware measurements: %v", err)
@@ -104,29 +172,8 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		hwPlatformID = matchedHwMeasurement.ID
 	}
 
-	// Get cert from TLS connection
-	var addr string
-	if strings.Contains(s.enclave, ":") {
-		// Enclave already has a port specified
-		addr = s.enclave
-	} else {
-		// Append default HTTPS port
-		addr = s.enclave + ":443"
-	}
-
-	conn, err := tls.Dial("tcp", addr, &tls.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to enclave: %v", err)
-	}
-	defer conn.Close()
-	certFP, err := attestation.ConnectionCertFP(conn.ConnectionState())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get certificate fingerprint: %v", err)
-	}
-
-	// Check if the certificate fingerprint matches the one in the verification
-	if certFP != enclaveVerification.PublicKeyFP {
-		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
+	if err := enclaveValidPubKey(s.enclave, enclaveVerification); err != nil {
+		return nil, err
 	}
 
 	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {

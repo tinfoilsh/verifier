@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 )
 
@@ -30,11 +31,13 @@ const (
 )
 
 var (
-	ErrFormatMismatch      = errors.New("attestation format mismatch")
-	ErrMeasurementMismatch = errors.New("measurement mismatch")
-	ErrRtmr1Mismatch       = errors.New("RTMR1 mismatch")
-	ErrRtmr2Mismatch       = errors.New("RTMR2 mismatch")
-	ErrFewRegisters        = errors.New("fewer registers than expected")
+	ErrFormatMismatch              = errors.New("attestation format mismatch")
+	ErrMeasurementMismatch         = errors.New("measurement mismatch")
+	ErrRtmr1Mismatch               = errors.New("RTMR1 mismatch")
+	ErrRtmr2Mismatch               = errors.New("RTMR2 mismatch")
+	ErrFewRegisters                = errors.New("fewer registers than expected")
+	ErrMultiPlatformMismatch       = errors.New("multi-platform measurement mismatch")
+	ErrMultiPlatformSevSnpMismatch = errors.New("multi-platform SEV-SNP measurement mismatch")
 )
 
 type Measurement struct {
@@ -51,7 +54,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 	// Base case: if both measurements are multi-platform, compare directly
 	if m.Type == SnpTdxMultiPlatformV1 && other.Type == SnpTdxMultiPlatformV1 {
 		if !slices.Equal(m.Registers, other.Registers) {
-			return ErrMeasurementMismatch
+			return ErrMultiPlatformMismatch
 		}
 		return nil
 	}
@@ -86,7 +89,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 			actualSevSnp := other.Registers[0]
 
 			if expectedSevSnp != actualSevSnp {
-				return ErrMeasurementMismatch
+				return ErrMultiPlatformSevSnpMismatch
 			}
 			return nil
 		default:
@@ -201,6 +204,21 @@ func Fetch(host string) (*Document, error) {
 
 	var doc Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, err
+	}
+	return &doc, nil
+}
+
+// FromFile reads an attestation document from a file
+func FromFile(path string) (*Document, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var doc Document
+	if err := json.NewDecoder(f).Decode(&doc); err != nil {
 		return nil, err
 	}
 	return &doc, nil
