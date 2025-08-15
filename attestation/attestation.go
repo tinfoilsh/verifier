@@ -31,11 +31,13 @@ const (
 )
 
 var (
-	ErrFormatMismatch      = errors.New("attestation format mismatch")
-	ErrMeasurementMismatch = errors.New("measurement mismatch")
-	ErrRtmr1Mismatch       = errors.New("RTMR1 mismatch")
-	ErrRtmr2Mismatch       = errors.New("RTMR2 mismatch")
-	ErrFewRegisters        = errors.New("fewer registers than expected")
+	ErrFormatMismatch              = errors.New("attestation format mismatch")
+	ErrMeasurementMismatch         = errors.New("measurement mismatch")
+	ErrRtmr1Mismatch               = errors.New("RTMR1 mismatch")
+	ErrRtmr2Mismatch               = errors.New("RTMR2 mismatch")
+	ErrFewRegisters                = errors.New("fewer registers than expected")
+	ErrMultiPlatformMismatch       = errors.New("multi-platform measurement mismatch")
+	ErrMultiPlatformSevSnpMismatch = errors.New("multi-platform SEV-SNP measurement mismatch")
 )
 
 type Measurement struct {
@@ -52,7 +54,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 	// Base case: if both measurements are multi-platform, compare directly
 	if m.Type == SnpTdxMultiPlatformV1 && other.Type == SnpTdxMultiPlatformV1 {
 		if !slices.Equal(m.Registers, other.Registers) {
-			return fmt.Errorf("multi-platform measurement mismatch")
+			return ErrMultiPlatformMismatch
 		}
 		return nil
 	}
@@ -87,7 +89,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 			actualSevSnp := other.Registers[0]
 
 			if expectedSevSnp != actualSevSnp {
-				return fmt.Errorf("multi-platform sev-snp measurement mismatch")
+				return ErrMultiPlatformSevSnpMismatch
 			}
 			return nil
 		default:
