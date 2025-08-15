@@ -59,6 +59,36 @@ func (s *SecureClient) GroundTruthJSON() (string, error) {
 	return string(encoded), nil
 }
 
+// enclaveValidPubKey checks if the public key covered by the attestation matches the public key of the enclave
+func enclaveValidPubKey(enclave string, enclaveVerification *attestation.Verification) error {
+	// Get cert from TLS connection
+	var addr string
+	if strings.Contains(enclave, ":") {
+		// Enclave already has a port specified
+		addr = enclave
+	} else {
+		// Append default HTTPS port
+		addr = enclave + ":443"
+	}
+
+	conn, err := tls.Dial("tcp", addr, &tls.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to connect to enclave: %v", err)
+	}
+	defer conn.Close()
+	certFP, err := attestation.ConnectionCertFP(conn.ConnectionState())
+	if err != nil {
+		return fmt.Errorf("failed to get certificate fingerprint: %v", err)
+	}
+
+	// Check if the certificate fingerprint matches the one in the verification
+	if certFP != enclaveVerification.PublicKeyFP {
+		return fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
+	}
+
+	return nil
+}
+
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
 func (s *SecureClient) Verify() (*GroundTruth, error) {
 	digest, err := github.FetchLatestDigest(s.repo)
@@ -104,29 +134,8 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		hwPlatformID = matchedHwMeasurement.ID
 	}
 
-	// Get cert from TLS connection
-	var addr string
-	if strings.Contains(s.enclave, ":") {
-		// Enclave already has a port specified
-		addr = s.enclave
-	} else {
-		// Append default HTTPS port
-		addr = s.enclave + ":443"
-	}
-
-	conn, err := tls.Dial("tcp", addr, &tls.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to enclave: %v", err)
-	}
-	defer conn.Close()
-	certFP, err := attestation.ConnectionCertFP(conn.ConnectionState())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get certificate fingerprint: %v", err)
-	}
-
-	// Check if the certificate fingerprint matches the one in the verification
-	if certFP != enclaveVerification.PublicKeyFP {
-		return nil, fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
+	if err := enclaveValidPubKey(s.enclave, enclaveVerification); err != nil {
+		return nil, err
 	}
 
 	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {
