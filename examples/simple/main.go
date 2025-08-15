@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	repo    = flag.String("r", "tinfoilsh/confidential-llama3-3-70b", "")
-	enclave = flag.String("e", "llama3-3-70b.model.tinfoil.sh", "")
+	repo            = flag.String("r", "tinfoilsh/confidential-llama-mistral-qwen-turbo", "")
+	enclave         = flag.String("e", "large.inf4.tinfoil.sh", "")
+	attestationFile = flag.String("a", "", "")
 )
 
 func main() {
@@ -35,22 +36,25 @@ func main() {
 		log.Fatalf("failed to fetch trust root: %v", err)
 	}
 
-	log.Println("Fetching latest hardware measurements")
-	hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
-	if err != nil {
-		log.Fatalf("failed to fetch hardware measurements: %v", err)
-	}
-
 	log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
 	codeMeasurements, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 	if err != nil {
 		log.Fatalf("failed to verify attested measurements: %v", err)
 	}
 
-	log.Printf("Fetching runtime attestation from %s", *enclave)
-	enclaveAttestation, err := attestation.Fetch(*enclave)
-	if err != nil {
-		log.Fatalf("failed to fetch enclave measurements: %v", err)
+	var enclaveAttestation *attestation.Document
+	if *attestationFile != "" {
+		log.Printf("Reading enclave attestation from %s", *attestationFile)
+		enclaveAttestation, err = attestation.FromFile(*attestationFile)
+		if err != nil {
+			log.Fatalf("failed to read enclave attestation: %v", err)
+		}
+	} else {
+		log.Printf("Fetching runtime attestation from %s", *enclave)
+		enclaveAttestation, err = attestation.Fetch(*enclave)
+		if err != nil {
+			log.Fatalf("failed to fetch enclave measurements: %v", err)
+		}
 	}
 
 	log.Println("Verifying enclave measurements")
@@ -60,6 +64,12 @@ func main() {
 	}
 
 	if enclaveAttestation.Format == attestation.TdxGuestV1 {
+		log.Println("Fetching latest hardware measurements")
+		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
+		if err != nil {
+			log.Fatalf("failed to fetch hardware measurements: %v", err)
+		}
+
 		log.Println("Verifying hardware measurements")
 		hwMeasurement, err := attestation.VerifyHardware(hwMeasurements, verification.Measurement)
 		if err != nil {

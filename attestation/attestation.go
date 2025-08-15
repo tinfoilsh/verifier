@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 )
 
@@ -51,7 +52,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 	// Base case: if both measurements are multi-platform, compare directly
 	if m.Type == SnpTdxMultiPlatformV1 && other.Type == SnpTdxMultiPlatformV1 {
 		if !slices.Equal(m.Registers, other.Registers) {
-			return ErrMeasurementMismatch
+			return fmt.Errorf("multi-platform measurement mismatch")
 		}
 		return nil
 	}
@@ -86,7 +87,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 			actualSevSnp := other.Registers[0]
 
 			if expectedSevSnp != actualSevSnp {
-				return ErrMeasurementMismatch
+				return fmt.Errorf("multi-platform sev-snp measurement mismatch")
 			}
 			return nil
 		default:
@@ -201,6 +202,21 @@ func Fetch(host string) (*Document, error) {
 
 	var doc Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, err
+	}
+	return &doc, nil
+}
+
+// FromFile reads an attestation document from a file
+func FromFile(path string) (*Document, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var doc Document
+	if err := json.NewDecoder(f).Decode(&doc); err != nil {
 		return nil, err
 	}
 	return &doc, nil
