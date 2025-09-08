@@ -5,10 +5,10 @@ Portable remote-attestation verifier & secure HTTP client for enclave-backed ser
 [![Build Status](https://github.com/tinfoilsh/verifier/workflows/Run%20tests/badge.svg)](https://github.com/tinfoilsh/verifier/actions)
 
 ## Overview
-Tinfoil Verifier is a Go library that verifies the integrity of remote enclaves (AMD SEV-SNP, Intel TDX & AWS Nitro) and binds that verification to TLS connections. It also ships a drop-in secure `http.Client` that performs attestation transparently.
+Tinfoil Verifier is a Go library that verifies the integrity of remote enclaves (AMD SEV-SNP & Intel TDX) and binds that verification to TLS connections. It also ships a drop-in secure `http.Client` that performs attestation transparently.
 
 ## Features
-- 🔒 **Hardware-rooted remote attestation** for SEV-SNP, TDX & Nitro Enclaves  
+- 🔒 **Hardware-rooted remote attestation** for SEV-SNP & TDX  
 - 📦 **Self-contained** with no external attestation service
 - 🕸 **Secure HTTP client** with automatic certificate pinning  
 - 🛡 **Sigstore integration** for reference measurements  
@@ -70,7 +70,6 @@ Tinfoil Verifier currently supports two platforms:
 | Platform       | Technique                                | Docs                                                  |
 |----------------|------------------------------------------|-------------------------------------------------------|
 | **AMD SEV-SNP**| VCEK certificates & SNP report validation | [AMD Spec](https://www.amd.com/en/developer/sev.html)  |
-| **AWS Nitro**  | NSM PCR measurements & signature checks  | [AWS Docs](https://docs.aws.amazon.com/enclaves/)      |
 | **Intel TDX** | TDX quote validation & TD report checks   | [Intel Guide](https://www.intel.com/content/www/us/en/developer/tools/trust-domain-extensions/overview.html) |
 
 ### Verification Flow
@@ -97,7 +96,6 @@ The same verifier is compiled to **WebAssembly** and published as [`verifier-js`
 1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
 2. **Attestation logic** – start with [`/attestation/attestation.go`](attestation/attestation.go) and platform files:
    - [`/attestation/sev.go`](attestation/sev.go)
-   - [`/attestation/nitro.go`](attestation/nitro.go)
    - [`/attestation/tdx.go`](attestation/tdx.go)
 3. **Measurement matching** – inspect [`/sigstore/sigstore.go`](sigstore/sigstore.go)
 
