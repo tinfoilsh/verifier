@@ -21,8 +21,14 @@ import (
 type PredicateType string
 
 const (
-	SevGuestV1             PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
-	TdxGuestV1             PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
+	// CC guest v1 types include only the TLS key fingerprint in the body
+	SevGuestV1 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
+	TdxGuestV1 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
+
+	// CC guest v2 types include a JSON strucutre containing the TLS key fingerprint and optionally HPKE public key
+	SevGuestV2 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v2"
+	TdxGuestV2 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v2"
+
 	SnpTdxMultiPlatformV1  PredicateType = "https://tinfoil.sh/predicate/snp-tdx-multiplatform/v1"
 	HardwareMeasurementsV1 PredicateType = "https://tinfoil.sh/predicate/hardware-measurements/v1"
 
