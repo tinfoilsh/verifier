@@ -116,7 +116,7 @@ func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, 
 		PermitProvisionalFirmware: true,
 		PlatformInfo: &abi.SnpPlatformInfo{
 			SMTEnabled:                  true,
-			TSMEEnabled:                 false,
+			TSMEEnabled:                 true,
 			ECCEnabled:                  false,
 			RAPLDisabled:                false,
 			CiphertextHidingDRAMEnabled: false,
