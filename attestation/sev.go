@@ -52,10 +52,17 @@ var (
 	_ trust.HTTPSGetter = &getter{}
 )
 
-func verifySevReport(attestationDoc string) (*sevsnp.Report, error) {
+func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
 		return nil, err
+	}
+
+	if isCompressed {
+		attDocBytes, err = gzipDecompress(attDocBytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	opts := verify.DefaultOptions()
@@ -109,7 +116,7 @@ func verifySevReport(attestationDoc string) (*sevsnp.Report, error) {
 		PermitProvisionalFirmware: true,
 		PlatformInfo: &abi.SnpPlatformInfo{
 			SMTEnabled:                  true,
-			TSMEEnabled:                 false,
+			TSMEEnabled:                 true,
 			ECCEnabled:                  false,
 			RAPLDisabled:                false,
 			CiphertextHidingDRAMEnabled: false,
@@ -133,7 +140,7 @@ func verifySevReport(attestationDoc string) (*sevsnp.Report, error) {
 }
 
 func verifySevAttestationV1(attestationDoc string) (*Verification, error) {
-	report, err := verifySevReport(attestationDoc)
+	report, err := verifySevReport(attestationDoc, false)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +157,7 @@ func verifySevAttestationV1(attestationDoc string) (*Verification, error) {
 }
 
 func verifySevAttestationV2(attestationDoc string) (*Verification, error) {
-	report, err := verifySevReport(attestationDoc)
+	report, err := verifySevReport(attestationDoc, true)
 	if err != nil {
 		return nil, err
 	}
@@ -161,5 +168,5 @@ func verifySevAttestationV2(attestationDoc string) (*Verification, error) {
 			hex.EncodeToString(report.Measurement),
 		},
 	}
-	return newVerificationV2(measurement, string(report.ReportData))
+	return newVerificationV2(measurement, report.ReportData), nil
 }

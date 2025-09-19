@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -56,19 +57,12 @@ type Verification struct {
 	HPKEPublicKey  string       `json:"hpke_public_key,omitempty"`
 }
 
-func newVerificationV2(measurement *Measurement, keys string) (*Verification, error) {
-	v := &Verification{
-		Measurement: measurement,
+func newVerificationV2(measurement *Measurement, keys []byte) *Verification {
+	return &Verification{
+		Measurement:    measurement,
+		TLSPublicKeyFP: hex.EncodeToString(keys[:32]),
+		HPKEPublicKey:  hex.EncodeToString(keys[32:]),
 	}
-
-	dBytes, err := hex.DecodeString(keys)
-	if err != nil {
-		return nil, err
-	}
-	v.TLSPublicKeyFP = hex.EncodeToString(dBytes[:32])
-	v.HPKEPublicKey = hex.EncodeToString(dBytes[32:])
-
-	return v, nil
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
@@ -178,8 +172,7 @@ func (d *Document) Verify() (*Verification, error) {
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
 func VerifyAttestationJSON(j []byte) (*Verification, error) {
 	var doc Document
-	err := json.Unmarshal(j, &doc)
-	if err != nil {
+	if err := json.Unmarshal(j, &doc); err != nil {
 		return nil, err
 	}
 
@@ -245,4 +238,14 @@ func FromFile(path string) (*Document, error) {
 		return nil, err
 	}
 	return &doc, nil
+}
+
+func gzipDecompress(data []byte) ([]byte, error) {
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer gz.Close()
+
+	return io.ReadAll(gz)
 }
