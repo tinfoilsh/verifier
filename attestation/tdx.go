@@ -33,7 +33,7 @@ func verifyTdxReport(attestationDoc string) ([]string, string, error) {
 
 	parsedReport, err := abi.QuoteToProto(attDocBytes)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse report: %v", err)
+		return nil, "", fmt.Errorf("failed to parse report: %w", err)
 	}
 	report, ok := parsedReport.(*pb.QuoteV4)
 	if !ok {
