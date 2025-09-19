@@ -73,7 +73,7 @@ func main() {
 		}
 	}
 
-	log.Println("Fetching TLS public key from %s", *enclave)
+	log.Printf("Fetching TLS public key from %s", *enclave)
 	tlsPublicKey, err := attestation.TLSPublicKey(*enclave)
 	if err != nil {
 		log.Fatalf("failed to fetch TLS public key: %v", err)
