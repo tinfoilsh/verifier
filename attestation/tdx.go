@@ -40,7 +40,7 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 
 	parsedReport, err := abi.QuoteToProto(attDocBytes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse report: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse report: %w", err)
 	}
 	report, ok := parsedReport.(*pb.QuoteV4)
 	if !ok {
