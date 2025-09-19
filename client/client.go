@@ -15,7 +15,8 @@ import (
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
-	PublicKey          string                   `json:"public_key"`
+	TLSPublicKey       string                   `json:"tls_public_key,omitempty"`
+	HPKEPublicKey      string                   `json:"hpke_public_key,omitempty"`
 	Digest             string                   `json:"digest"`
 	CodeMeasurement    *attestation.Measurement `json:"code_measurement"`
 	EnclaveMeasurement *attestation.Measurement `json:"enclave_measurement"`
@@ -96,8 +97,8 @@ func enclaveValidPubKey(enclave string, enclaveVerification *attestation.Verific
 	}
 
 	// Check if the certificate fingerprint matches the one in the verification
-	if certFP != enclaveVerification.PublicKeyFP {
-		return fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.PublicKeyFP, certFP)
+	if certFP != enclaveVerification.TLSPublicKeyFP {
+		return fmt.Errorf("certificate fingerprint mismatch: expected %s, got %s", enclaveVerification.TLSPublicKeyFP, certFP)
 	}
 
 	return nil
@@ -181,7 +182,8 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	s.groundTruth = &GroundTruth{
-		PublicKey:          enclaveVerification.PublicKeyFP,
+		TLSPublicKey:       enclaveVerification.TLSPublicKeyFP,
+		HPKEPublicKey:      enclaveVerification.HPKEPublicKey,
 		Digest:             digest,
 		CodeMeasurement:    codeMeasurement,
 		EnclaveMeasurement: enclaveVerification.Measurement,
@@ -200,7 +202,7 @@ func (s *SecureClient) HTTPClient() (*http.Client, error) {
 	}
 
 	return &http.Client{
-		Transport: &TLSBoundRoundTripper{s.groundTruth.PublicKey},
+		Transport: &TLSBoundRoundTripper{s.groundTruth.TLSPublicKey},
 	}, nil
 }
 
