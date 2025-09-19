@@ -25,7 +25,7 @@ func TestTdxVerify(t *testing.T) {
 	assert.Equal(t, hwMeasurements[0], matched)
 
 	require.NotNil(t, verification)
-	assert.Equal(t, "d9381c169257c7558bc75d76a9e2fb90452071d7f756ef5122c88903bbb46062", verification.PublicKeyFP)
+	assert.Equal(t, "d9381c169257c7558bc75d76a9e2fb90452071d7f756ef5122c88903bbb46062", verification.TLSPublicKeyFP)
 	assert.Equal(t, 5, len(verification.Measurement.Registers))
 	assert.Equal(t, "7357a10d2e2724dffe68813e3cc4cfcde6814d749f2fb62e3953e54f6e0b50a219786afe2cd478f684b52c61837e1114", verification.Measurement.Registers[0]) // MRTD
 	assert.Equal(t, "c7ced7785890f68144887bc49e61436214d063d72a5946028b3d3ef63e76327db2883cf644b80b849d643acd79303ad6", verification.Measurement.Registers[1]) // RTMR0

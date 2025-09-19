@@ -29,8 +29,9 @@ func TestVerify(t *testing.T) {
 
 func TestClientGroundTruthJSON(t *testing.T) {
 	gt := &GroundTruth{
-		PublicKey: "pubkey",
-		Digest:    "feabcd",
+		TLSPublicKey:  "pubkey",
+		HPKEPublicKey: "hpkekey",
+		Digest:        "feabcd",
 		CodeMeasurement: &attestation.Measurement{
 			Type:      attestation.SnpTdxMultiPlatformV1,
 			Registers: []string{"a", "b"},

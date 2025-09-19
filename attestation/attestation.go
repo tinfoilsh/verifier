@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -51,8 +52,17 @@ type Measurement struct {
 }
 
 type Verification struct {
-	Measurement *Measurement `json:"measurement"`
-	PublicKeyFP string       `json:"public_key"`
+	Measurement    *Measurement `json:"measurement"`
+	TLSPublicKeyFP string       `json:"tls_public_key,omitempty"`
+	HPKEPublicKey  string       `json:"hpke_public_key,omitempty"`
+}
+
+func newVerificationV2(measurement *Measurement, keys []byte) *Verification {
+	return &Verification{
+		Measurement:    measurement,
+		TLSPublicKeyFP: hex.EncodeToString(keys[:32]),
+		HPKEPublicKey:  hex.EncodeToString(keys[32:]),
+	}
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
@@ -147,9 +157,13 @@ func (d *Document) Hash() string {
 func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
 	case SevGuestV1:
-		return verifySevAttestation(d.Body)
+		return verifySevAttestationV1(d.Body)
+	case SevGuestV2:
+		return verifySevAttestationV2(d.Body)
 	case TdxGuestV1:
-		return verifyTdxAttestation(d.Body)
+		return verifyTdxAttestationV1(d.Body)
+	case TdxGuestV2:
+		return verifyTdxAttestationV2(d.Body)
 	default:
 		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}
@@ -158,8 +172,7 @@ func (d *Document) Verify() (*Verification, error) {
 // VerifyAttestationJSON verifies an attestation document in JSON format and returns the inner measurements
 func VerifyAttestationJSON(j []byte) (*Verification, error) {
 	var doc Document
-	err := json.Unmarshal(j, &doc)
-	if err != nil {
+	if err := json.Unmarshal(j, &doc); err != nil {
 		return nil, err
 	}
 
@@ -212,6 +225,16 @@ func Fetch(host string) (*Document, error) {
 	return &doc, nil
 }
 
+// TLSPublicKey returns the TLS public key of a given host
+func TLSPublicKey(host string) (string, error) {
+	conn, err := tls.Dial("tcp", host+":443", &tls.Config{})
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+	return ConnectionCertFP(conn.ConnectionState())
+}
+
 // FromFile reads an attestation document from a file
 func FromFile(path string) (*Document, error) {
 	f, err := os.Open(path)
@@ -225,4 +248,14 @@ func FromFile(path string) (*Document, error) {
 		return nil, err
 	}
 	return &doc, nil
+}
+
+func gzipDecompress(data []byte) ([]byte, error) {
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer gz.Close()
+
+	return io.ReadAll(gz)
 }

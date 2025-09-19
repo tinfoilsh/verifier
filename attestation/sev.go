@@ -52,10 +52,17 @@ var (
 	_ trust.HTTPSGetter = &getter{}
 )
 
-func verifySevAttestation(attestationDoc string) (*Verification, error) {
+func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
 		return nil, err
+	}
+
+	if isCompressed {
+		attDocBytes, err = gzipDecompress(attDocBytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	opts := verify.DefaultOptions()
@@ -109,7 +116,7 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		PermitProvisionalFirmware: true,
 		PlatformInfo: &abi.SnpPlatformInfo{
 			SMTEnabled:                  true,
-			TSMEEnabled:                 false,
+			TSMEEnabled:                 true,
 			ECCEnabled:                  false,
 			RAPLDisabled:                false,
 			CiphertextHidingDRAMEnabled: false,
@@ -129,15 +136,37 @@ func verifySevAttestation(attestationDoc string) (*Verification, error) {
 		return nil, err
 	}
 
-	measurement := &Measurement{
-		Type: SevGuestV1,
-		Registers: []string{
-			hex.EncodeToString(parsedReport.Measurement),
-		},
+	return parsedReport, nil
+}
+
+func verifySevAttestationV1(attestationDoc string) (*Verification, error) {
+	report, err := verifySevReport(attestationDoc, false)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Verification{
-		Measurement: measurement,
-		PublicKeyFP: string(parsedReport.ReportData),
+		Measurement: &Measurement{
+			Type: SevGuestV1,
+			Registers: []string{
+				hex.EncodeToString(report.Measurement),
+			},
+		},
+		TLSPublicKeyFP: string(report.ReportData),
 	}, nil
+}
+
+func verifySevAttestationV2(attestationDoc string) (*Verification, error) {
+	report, err := verifySevReport(attestationDoc, true)
+	if err != nil {
+		return nil, err
+	}
+
+	measurement := &Measurement{
+		Type: SevGuestV2,
+		Registers: []string{
+			hex.EncodeToString(report.Measurement),
+		},
+	}
+	return newVerificationV2(measurement, report.ReportData), nil
 }

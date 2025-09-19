@@ -8,6 +8,7 @@ require (
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/sigstore/protobuf-specs v0.5.0
 	github.com/sigstore/sigstore-go v1.1.2-0.20250811211025-bac873564adb
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
 	github.com/theupdateframework/go-tuf/v2 v2.1.1
 	google.golang.org/protobuf v1.36.8
