@@ -22,10 +22,10 @@ func (t tdxGetter) Get(url string) (map[string][]string, []byte, error) {
 	return headers, body, nil
 }
 
-func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
+func verifyTdxReport(attestationDoc string) ([]string, string, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	opts := verify.DefaultOptions()
@@ -33,34 +33,55 @@ func verifyTdxAttestation(attestationDoc string) (*Verification, error) {
 
 	parsedReport, err := abi.QuoteToProto(attDocBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse report: %v", err)
+		return nil, "", fmt.Errorf("failed to parse report: %v", err)
 	}
 	report, ok := parsedReport.(*pb.QuoteV4)
 	if !ok {
-		return nil, fmt.Errorf("failed to convert to QuoteV4")
+		return nil, "", fmt.Errorf("failed to convert to QuoteV4")
 	}
 
 	if err := verify.TdxQuote(parsedReport, opts); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if len(report.TdQuoteBody.Rtmrs) != 4 {
-		return nil, fmt.Errorf("expected 4 RTMRs, got %d", len(report.TdQuoteBody.Rtmrs))
+		return nil, "", fmt.Errorf("expected 4 RTMRs, got %d", len(report.TdQuoteBody.Rtmrs))
 	}
 
-	measurement := &Measurement{
-		Type: TdxGuestV1,
-		Registers: []string{
-			hex.EncodeToString(report.TdQuoteBody.MrTd),
-			hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
-			hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
-			hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
-			hex.EncodeToString(report.TdQuoteBody.Rtmrs[3]),
-		},
+	registers := []string{
+		hex.EncodeToString(report.TdQuoteBody.MrTd),
+		hex.EncodeToString(report.TdQuoteBody.Rtmrs[0]),
+		hex.EncodeToString(report.TdQuoteBody.Rtmrs[1]),
+		hex.EncodeToString(report.TdQuoteBody.Rtmrs[2]),
+		hex.EncodeToString(report.TdQuoteBody.Rtmrs[3]),
+	}
+
+	return registers, string(report.TdQuoteBody.ReportData), nil
+}
+
+func verifyTdxAttestationV1(attestationDoc string) (*Verification, error) {
+	registers, reportData, err := verifyTdxReport(attestationDoc)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Verification{
-		Measurement: measurement,
-		PublicKeyFP: string(report.TdQuoteBody.ReportData),
+		Measurement: &Measurement{
+			Type:      TdxGuestV1,
+			Registers: registers,
+		},
+		TLSPublicKeyFP: reportData,
 	}, nil
+}
+
+func verifyTdxAttestationV2(attestationDoc string) (*Verification, error) {
+	registers, reportData, err := verifyTdxReport(attestationDoc)
+	if err != nil {
+		return nil, err
+	}
+
+	return newVerificationV2(&Measurement{
+		Type:      TdxGuestV2,
+		Registers: registers,
+	}, reportData)
 }

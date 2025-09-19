@@ -51,8 +51,24 @@ type Measurement struct {
 }
 
 type Verification struct {
-	Measurement *Measurement `json:"measurement"`
-	PublicKeyFP string       `json:"public_key"`
+	Measurement    *Measurement `json:"measurement"`
+	TLSPublicKeyFP string       `json:"tls_public_key,omitempty"`
+	HPKEPublicKey  string       `json:"hpke_public_key,omitempty"`
+}
+
+func newVerificationV2(measurement *Measurement, keys string) (*Verification, error) {
+	v := &Verification{
+		Measurement: measurement,
+	}
+
+	dBytes, err := hex.DecodeString(keys)
+	if err != nil {
+		return nil, err
+	}
+	v.TLSPublicKeyFP = hex.EncodeToString(dBytes[:32])
+	v.HPKEPublicKey = hex.EncodeToString(dBytes[32:])
+
+	return v, nil
 }
 
 func (m *Measurement) Equals(other *Measurement) error {
@@ -147,9 +163,13 @@ func (d *Document) Hash() string {
 func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
 	case SevGuestV1:
-		return verifySevAttestation(d.Body)
+		return verifySevAttestationV1(d.Body)
+	case SevGuestV2:
+		return verifySevAttestationV2(d.Body)
 	case TdxGuestV1:
-		return verifyTdxAttestation(d.Body)
+		return verifyTdxAttestationV1(d.Body)
+	case TdxGuestV2:
+		return verifyTdxAttestationV2(d.Body)
 	default:
 		return nil, fmt.Errorf("unsupported attestation format: %s", d.Format)
 	}

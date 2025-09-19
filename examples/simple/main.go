@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"log"
+	"net/http"
 
 	"github.com/tinfoilsh/verifier/attestation"
 	"github.com/tinfoilsh/verifier/github"
@@ -12,11 +14,21 @@ import (
 var (
 	repo            = flag.String("r", "tinfoilsh/confidential-llama-mistral-qwen-turbo", "")
 	enclave         = flag.String("e", "large.inf4.tinfoil.sh", "")
+	insecure        = flag.Bool("i", false, "")
 	attestationFile = flag.String("a", "", "")
 )
 
 func main() {
 	flag.Parse()
+
+	if *insecure {
+		log.Println("Running in insecure mode")
+		http.DefaultTransport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	}
 
 	log.Printf("Fetching latest release for %s", *repo)
 	digest, err := github.FetchLatestDigest(*repo)
@@ -78,13 +90,14 @@ func main() {
 		log.Printf("Matched hardware measurement: %s", hwMeasurement.ID)
 	}
 
+	log.Printf("TLS public key fingerprint: %s", verification.TLSPublicKeyFP)
+	log.Printf("HPKE public key fingerprint: %s", verification.HPKEPublicKey)
+	log.Printf("Code Measurement: %+v", codeMeasurements)
+	log.Printf("Enclave Measurement: %+v", verification.Measurement)
+
 	log.Println("Comparing measurements")
 	if err := codeMeasurements.Equals(verification.Measurement); err != nil {
 		log.Fatalf("Measurements do not match: %v", err)
 	}
-
 	log.Println("Verification successful!")
-	log.Printf("Public key fingerprint: %s", verification.PublicKeyFP)
-	log.Printf("Code Measurement: %+v", codeMeasurements)
-	log.Printf("Enclave Measurement: %+v", verification.Measurement)
 }
