@@ -3,8 +3,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/tinfoilsh/verifier/attestation"
 	"github.com/tinfoilsh/verifier/github"
@@ -12,8 +13,8 @@ import (
 )
 
 var (
-	repo            = flag.String("r", "tinfoilsh/confidential-llama-mistral-qwen-turbo", "")
-	enclave         = flag.String("e", "large.inf4.tinfoil.sh", "")
+	repo            = flag.String("r", "tinfoilsh/confidential-inference-proxy", "")
+	enclave         = flag.String("e", "inference.tinfoil.sh", "")
 	insecure        = flag.Bool("i", false, "")
 	attestationFile = flag.String("a", "", "")
 )
@@ -30,28 +31,31 @@ func main() {
 		}
 	}
 
-	log.Printf("Fetching latest release for %s", *repo)
-	digest, err := github.FetchLatestDigest(*repo)
-	if err != nil {
-		log.Fatalf("failed to fetch latest release: %v", err)
-	}
-
-	log.Printf("Fetching attestation bundle for %s@%s", *repo, digest)
-	sigstoreBundle, err := github.FetchAttestationBundle(*repo, digest)
-	if err != nil {
-		log.Fatalf("failed to fetch attestation bundle: %v", err)
-	}
-
 	log.Println("Fetching SigStore trust root")
 	sigstoreClient, err := sigstore.NewClient()
 	if err != nil {
 		log.Fatalf("failed to fetch trust root: %v", err)
 	}
 
-	log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
-	codeMeasurements, err := sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
-	if err != nil {
-		log.Fatalf("failed to verify attested measurements: %v", err)
+	var codeMeasurements *attestation.Measurement
+	if *repo != "" {
+		log.Printf("Fetching latest release for %s", *repo)
+		digest, err := github.FetchLatestDigest(*repo)
+		if err != nil {
+			log.Fatalf("failed to fetch latest release: %v", err)
+		}
+
+		log.Printf("Fetching attestation bundle for %s@%s", *repo, digest)
+		sigstoreBundle, err := github.FetchAttestationBundle(*repo, digest)
+		if err != nil {
+			log.Fatalf("failed to fetch attestation bundle: %v", err)
+		}
+
+		log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
+		codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
+		if err != nil {
+			log.Fatalf("failed to verify attested measurements: %v", err)
+		}
 	}
 
 	var enclaveAttestation *attestation.Document
@@ -90,14 +94,18 @@ func main() {
 		log.Printf("Matched hardware measurement: %s", hwMeasurement.ID)
 	}
 
+	log.Println("Verification successful!")
 	log.Printf("TLS public key fingerprint: %s", verification.TLSPublicKeyFP)
 	log.Printf("HPKE public key fingerprint: %s", verification.HPKEPublicKey)
-	log.Printf("Code Measurement: %+v", codeMeasurements)
 	log.Printf("Enclave Measurement: %+v", verification.Measurement)
 
-	log.Println("Comparing measurements")
-	if err := codeMeasurements.Equals(verification.Measurement); err != nil {
-		log.Fatalf("Measurements do not match: %v", err)
+	if codeMeasurements != nil {
+		log.Printf("Code Measurement: %+v", codeMeasurements)
+		log.Println("Comparing measurements")
+		if err := codeMeasurements.Equals(verification.Measurement); err != nil {
+			log.Fatalf("Measurements do not match: %v", err)
+		}
+	} else {
+		log.Println("No code measurements provided, skipping comparison")
 	}
-	log.Println("Verification successful!")
 }
