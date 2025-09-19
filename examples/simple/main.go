@@ -73,6 +73,13 @@ func main() {
 		}
 	}
 
+	log.Println("Fetching TLS public key from %s", *enclave)
+	tlsPublicKey, err := attestation.TLSPublicKey(*enclave)
+	if err != nil {
+		log.Fatalf("failed to fetch TLS public key: %v", err)
+	}
+	log.Printf("TLS public key: %s", tlsPublicKey)
+
 	log.Println("Verifying enclave measurements")
 	verification, err := enclaveAttestation.Verify()
 	if err != nil {
@@ -98,6 +105,12 @@ func main() {
 	log.Printf("TLS public key fingerprint: %s", verification.TLSPublicKeyFP)
 	log.Printf("HPKE public key fingerprint: %s", verification.HPKEPublicKey)
 	log.Printf("Enclave Measurement: %+v", verification.Measurement)
+
+	if verification.TLSPublicKeyFP != tlsPublicKey {
+		log.Fatalf("TLS public key fingerprint mismatch: expected %s, got %s", tlsPublicKey, verification.TLSPublicKeyFP)
+	} else {
+		log.Println("TLS public key fingerprint matches")
+	}
 
 	if codeMeasurements != nil {
 		log.Printf("Code Measurement: %+v", codeMeasurements)

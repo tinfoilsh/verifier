@@ -225,6 +225,16 @@ func Fetch(host string) (*Document, error) {
 	return &doc, nil
 }
 
+// TLSPublicKey returns the TLS public key of a given host
+func TLSPublicKey(host string) (string, error) {
+	conn, err := tls.Dial("tcp", host+":443", &tls.Config{})
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+	return ConnectionCertFP(conn.ConnectionState())
+}
+
 // FromFile reads an attestation document from a file
 func FromFile(path string) (*Document, error) {
 	f, err := os.Open(path)
