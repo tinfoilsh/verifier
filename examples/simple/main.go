@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	repo            = flag.String("r", "tinfoilsh/confidential-inference-proxy", "")
-	enclave         = flag.String("e", "inference.tinfoil.sh", "")
-	insecure        = flag.Bool("i", false, "")
-	attestationFile = flag.String("a", "", "")
+	repo            = flag.String("r", "tinfoilsh/confidential-inference-proxy", "config repo")
+	enclave         = flag.String("e", "inference.tinfoil.sh", "enclave host")
+	insecure        = flag.Bool("i", false, "TLS insecure skip verify")
+	attestationFile = flag.String("a", "", "path to attestation document file")
 )
 
 func main() {
