@@ -81,7 +81,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 
 	if m.Type == SnpTdxMultiPlatformV1 {
 		switch other.Type {
-		case TdxGuestV1:
+		case TdxGuestV1, TdxGuestV2:
 			if len(m.Registers) < 3 || len(other.Registers) < 4 {
 				return ErrFewRegisters
 			}
@@ -99,7 +99,7 @@ func (m *Measurement) Equals(other *Measurement) error {
 				return ErrRtmr2Mismatch
 			}
 			return nil
-		case SevGuestV1:
+		case SevGuestV1, SevGuestV2:
 			expectedSevSnp := m.Registers[0]
 			actualSevSnp := other.Registers[0]
 
