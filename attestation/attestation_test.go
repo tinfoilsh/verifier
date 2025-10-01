@@ -177,18 +177,18 @@ func TestMeasurementEquals(t *testing.T) {
 			},
 			m2: &Measurement{
 				Type:      SevGuestV2,
-				Registers: []string{"sevsnp", "rtmr1", "rtmr2"},
+				Registers: []string{"sevsnp"},
 			},
 		}, {
 			name:    "multi-platform TDX v2 match",
 			wantErr: nil,
 			m1: &Measurement{
 				Type:      SnpTdxMultiPlatformV1,
-				Registers: []string{"tdx", "rtmr1", "rtmr2"},
+				Registers: []string{"sevsnp", "rtmr1", "rtmr2"},
 			},
 			m2: &Measurement{
 				Type:      TdxGuestV2,
-				Registers: []string{"tdx", "rtmr1", "rtmr2"},
+				Registers: []string{"mrtd", "rtmr0", "rtmr1", "rtmr2"},
 			},
 		},
 	}
