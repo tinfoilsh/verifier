@@ -101,10 +101,11 @@ func main() {
 		log.Printf("Matched hardware measurement: %s", hwMeasurement.ID)
 	}
 
-	log.Println("Verification successful!")
-	log.Printf("TLS public key fingerprint: %s", verification.TLSPublicKeyFP)
-	log.Printf("HPKE public key fingerprint: %s", verification.HPKEPublicKey)
-	log.Printf("Enclave Measurement: %+v", verification.Measurement)
+	log.WithFields(log.Fields{
+		"tls_public_key_fp":   verification.TLSPublicKeyFP,
+		"hpke_public_key_fp":  verification.HPKEPublicKey,
+		"enclave_measurement": verification.Measurement,
+	}).Println("Verified remote attestation")
 
 	if verification.TLSPublicKeyFP != tlsPublicKey {
 		log.Fatalf("TLS public key fingerprint mismatch: expected %s, got %s", tlsPublicKey, verification.TLSPublicKeyFP)
@@ -117,6 +118,8 @@ func main() {
 		log.Println("Comparing measurements")
 		if err := codeMeasurements.Equals(verification.Measurement); err != nil {
 			log.Fatalf("Measurements do not match: %v", err)
+		} else {
+			log.Println("Measurements match")
 		}
 	} else {
 		log.Println("No code measurements provided, skipping comparison")
