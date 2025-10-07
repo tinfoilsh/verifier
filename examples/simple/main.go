@@ -39,19 +39,24 @@ func main() {
 
 	var codeMeasurements *attestation.Measurement
 	if *repo != "" {
-		log.Printf("Fetching latest release for %s", *repo)
+		log.WithFields(log.Fields{
+			"repo": *repo,
+		}).Printf("Fetching latest release")
 		digest, err := github.FetchLatestDigest(*repo)
 		if err != nil {
 			log.Fatalf("failed to fetch latest release: %v", err)
 		}
 
-		log.Printf("Fetching attestation bundle for %s@%s", *repo, digest)
+		log.WithFields(log.Fields{
+			"repo":   *repo,
+			"digest": digest,
+		}).Printf("Fetching runtime attestation")
 		sigstoreBundle, err := github.FetchAttestationBundle(*repo, digest)
 		if err != nil {
 			log.Fatalf("failed to fetch attestation bundle: %v", err)
 		}
 
-		log.Printf("Verifying attested measurements for %s@%s", *repo, digest)
+		log.Printf("Fetching code attestation")
 		codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 		if err != nil {
 			log.Fatalf("failed to verify attested measurements: %v", err)
@@ -78,13 +83,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to fetch TLS public key: %v", err)
 	}
-	log.Printf("TLS public key: %s", tlsPublicKey)
+	log.Printf("Connection TLS public key: %s", tlsPublicKey)
 
 	log.Println("Verifying enclave measurements")
 	verification, err := enclaveAttestation.Verify()
 	if err != nil {
 		log.Fatalf("failed to verify enclave measurements: %v", err)
 	}
+
+	log.WithFields(log.Fields{
+		"enclave": verification.Measurement,
+		"runtime": codeMeasurements,
+	}).Info("Measurements")
 
 	if enclaveAttestation.Format == attestation.TdxGuestV1 {
 		log.Println("Fetching latest hardware measurements")
@@ -102,9 +112,8 @@ func main() {
 	}
 
 	log.WithFields(log.Fields{
-		"tls_public_key_fp":   verification.TLSPublicKeyFP,
-		"hpke_public_key_fp":  verification.HPKEPublicKey,
-		"enclave_measurement": verification.Measurement,
+		"tls_public_key_fp":  verification.TLSPublicKeyFP,
+		"hpke_public_key_fp": verification.HPKEPublicKey,
 	}).Println("Verified remote attestation")
 
 	if verification.TLSPublicKeyFP != tlsPublicKey {
@@ -114,8 +123,6 @@ func main() {
 	}
 
 	if codeMeasurements != nil {
-		log.Printf("Code Measurement: %+v", codeMeasurements)
-		log.Println("Comparing measurements")
 		if err := codeMeasurements.Equals(verification.Measurement); err != nil {
 			log.Fatalf("Measurements do not match: %v", err)
 		} else {
