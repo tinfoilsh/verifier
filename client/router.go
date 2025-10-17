@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"net/http"
 )
@@ -35,6 +36,9 @@ func (r *Router) GetRouter() (string, error) {
 		return "", err
 	}
 
+	if len(routers) == 0 {
+		return "", errors.New("no routers found")
+	}
 	return routers[rand.Intn(len(routers))], nil
 }
 
