@@ -28,14 +28,11 @@ go get github.com/tinfoilsh/verifier@latest
 ```go
 import "github.com/tinfoilsh/verifier/client"
 
-// 1. Create a client for your enclave + GitHub repo
-tinfoilClient := client.NewDefaultClient()
+// 1. Create a client
+tinfoilClient, err := client.NewDefaultClient()
 
 // 2. Perform HTTP requests – attestation happens automatically
 resp, err := tinfoilClient.Get("/api/data", nil)
-if err != nil {
-    log.Fatalf("request failed: %v", err)
-}
 ```
 
 To verify manually and expose the verification state:
