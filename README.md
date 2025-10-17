@@ -29,10 +29,7 @@ go get github.com/tinfoilsh/verifier@latest
 import "github.com/tinfoilsh/verifier/client"
 
 // 1. Create a client for your enclave + GitHub repo
-tinfoilClient := client.NewSecureClient(
-    "enclave.example.com", // Hostname of the enclave
-    "org/repo",            // Repository containing attestation bundle
-)
+tinfoilClient := client.NewDefaultClient()
 
 // 2. Perform HTTP requests – attestation happens automatically
 resp, err := tinfoilClient.Get("/api/data", nil)
