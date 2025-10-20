@@ -17,6 +17,9 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strings"
+
+	"github.com/tinfoilsh/verifier/util"
 )
 
 type PredicateType string
@@ -65,62 +68,89 @@ func newVerificationV2(measurement *Measurement, keys []byte) *Verification {
 	}
 }
 
-func (m *Measurement) Equals(other *Measurement) error {
+func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 	// Base case: if both measurements are multi-platform, compare directly
 	if m.Type == SnpTdxMultiPlatformV1 && other.Type == SnpTdxMultiPlatformV1 {
 		if !slices.Equal(m.Registers, other.Registers) {
-			return ErrMultiPlatformMismatch
+			return "", ErrMultiPlatformMismatch
 		}
-		return nil
+		return "MP-MP exact match", nil
 	}
 
 	// Flip comparison order for multi-platform measurements
 	if other.Type == SnpTdxMultiPlatformV1 {
-		return other.Equals(m)
+		return other.EqualsDisplay(m)
 	}
 
 	if m.Type == SnpTdxMultiPlatformV1 {
+		var err error
+		var out strings.Builder
+
+		if len(m.Registers) < 3 {
+			return "", ErrFewRegisters
+		}
+
+		expectedSnp := m.Registers[0]
+		expectedRtmr1 := m.Registers[1]
+		expectedRtmr2 := m.Registers[2]
+
 		switch other.Type {
 		case TdxGuestV1, TdxGuestV2:
-			if len(m.Registers) < 3 || len(other.Registers) < 4 {
-				return ErrFewRegisters
+			if len(other.Registers) < 4 {
+				return "MP-TDX unable to compare, too few TDX registers", ErrFewRegisters
 			}
-
-			expectedRtmr1 := m.Registers[1] // 0 is SNP
-			expectedRtmr2 := m.Registers[2]
 
 			actualRtmr1 := other.Registers[2] // 0 is MRTD, 1 is RTMR0
 			actualRtmr2 := other.Registers[3]
 
+			out.WriteString(util.Colorizef(util.ColorGrey, "[i] SNP   %s\n", expectedSnp))
+
 			if expectedRtmr1 != actualRtmr1 {
-				return ErrRtmr1Mismatch
+				out.WriteString(util.Colorizef(util.ColorRed, "[-] RTMR1 %s != %s\n", expectedRtmr1, actualRtmr1))
+				err = errors.Join(err, ErrRtmr1Mismatch)
 			}
 			if expectedRtmr2 != actualRtmr2 {
-				return ErrRtmr2Mismatch
+				out.WriteString(util.Colorizef(util.ColorRed, "[-] RTMR2 %s != %s\n", expectedRtmr2, actualRtmr2))
+				err = errors.Join(err, ErrRtmr2Mismatch)
 			}
-			return nil
-		case SevGuestV1, SevGuestV2:
-			expectedSevSnp := m.Registers[0]
-			actualSevSnp := other.Registers[0]
 
-			if expectedSevSnp != actualSevSnp {
-				return ErrMultiPlatformSevSnpMismatch
+			if err == nil {
+				out.WriteString(util.Colorizef(util.ColorGreen, "[+] RTMR1 %s\n[+] RTMR2 %s\n", expectedRtmr1, expectedRtmr2))
 			}
-			return nil
+
+			return strings.TrimRight(out.String(), "\n"), err
+		case SevGuestV1, SevGuestV2:
+			actualSnp := other.Registers[0]
+
+			if expectedSnp != actualSnp {
+				out.WriteString(util.Colorizef(util.ColorRed, "[-] SNP   %s != %s\n", expectedSnp, actualSnp))
+				err = ErrMultiPlatformSevSnpMismatch
+			} else {
+				out.WriteString(util.Colorizef(util.ColorGreen, "[+] SNP   %s\n", expectedSnp))
+			}
+
+			out.WriteString(util.Colorizef(util.ColorGrey, "[i] RTMR1 %s\n[i] RTMR2 %s", expectedRtmr1, expectedRtmr2))
+
+			return strings.TrimRight(out.String(), "\n"), err
 		default:
-			return fmt.Errorf("unsupported enclave platform for multi-platform code measurements: %s", other.Type)
+			return "", fmt.Errorf("unsupported enclave platform for multi-platform code measurements: %s", other.Type)
 		}
 	}
 
 	if m.Type != other.Type {
-		return ErrFormatMismatch
+		return "", ErrFormatMismatch
 	}
 
 	if !slices.Equal(m.Registers, other.Registers) {
-		return ErrMeasurementMismatch
+		return "", ErrMeasurementMismatch
 	}
 
-	return nil
+	return "", nil
+}
+
+func (m *Measurement) Equals(other *Measurement) error {
+	_, err := m.EqualsDisplay(other)
+	return err
 }
 
 // Document represents an attestation document

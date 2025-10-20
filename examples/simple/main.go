@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -13,8 +14,8 @@ import (
 )
 
 var (
-	repo            = flag.String("r", "tinfoilsh/confidential-inference-proxy", "config repo")
-	enclave         = flag.String("e", "inference.tinfoil.sh", "enclave host")
+	repo            = flag.String("r", "tinfoilsh/confidential-model-router", "config repo")
+	enclave         = flag.String("e", "router.inf7.tinfoil.sh", "enclave host")
 	insecure        = flag.Bool("i", false, "TLS insecure skip verify")
 	attestationFile = flag.String("a", "", "path to attestation document file")
 )
@@ -56,7 +57,7 @@ func main() {
 			log.Fatalf("failed to fetch attestation bundle: %v", err)
 		}
 
-		log.Printf("Fetching code attestation")
+		log.Printf("Verifying source attestation")
 		codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 		if err != nil {
 			log.Fatalf("failed to verify attested measurements: %v", err)
@@ -123,7 +124,9 @@ func main() {
 	}
 
 	if codeMeasurements != nil {
-		if err := codeMeasurements.Equals(verification.Measurement); err != nil {
+		out, err := codeMeasurements.EqualsDisplay(verification.Measurement)
+		fmt.Println(out)
+		if err != nil {
 			log.Fatalf("Measurements do not match: %v", err)
 		} else {
 			log.Println("Measurements match")
