@@ -18,8 +18,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-
-	"github.com/tinfoilsh/verifier/util"
 )
 
 type PredicateType string
@@ -29,7 +27,7 @@ const (
 	SevGuestV1 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
 	TdxGuestV1 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
 
-	// CC guest v2 types include a JSON strucutre containing the TLS key fingerprint and optionally HPKE public key
+	// CC guest v2 types include the TLS key fingerprint and optionally HPKE public key
 	SevGuestV2 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v2"
 	TdxGuestV2 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v2"
 
@@ -103,19 +101,19 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 			actualRtmr1 := other.Registers[2] // 0 is MRTD, 1 is RTMR0
 			actualRtmr2 := other.Registers[3]
 
-			out.WriteString(util.Colorizef(util.ColorGrey, "[i] SNP   %s\n", expectedSnp))
+			out.WriteString(fmt.Sprintf("[i] SNP   %s\n", expectedSnp))
 
 			if expectedRtmr1 != actualRtmr1 {
-				out.WriteString(util.Colorizef(util.ColorRed, "[-] RTMR1 %s != %s\n", expectedRtmr1, actualRtmr1))
+				out.WriteString(fmt.Sprintf("[-] RTMR1 %s != %s\n", expectedRtmr1, actualRtmr1))
 				err = errors.Join(err, ErrRtmr1Mismatch)
 			}
 			if expectedRtmr2 != actualRtmr2 {
-				out.WriteString(util.Colorizef(util.ColorRed, "[-] RTMR2 %s != %s\n", expectedRtmr2, actualRtmr2))
+				out.WriteString(fmt.Sprintf("[-] RTMR2 %s != %s\n", expectedRtmr2, actualRtmr2))
 				err = errors.Join(err, ErrRtmr2Mismatch)
 			}
 
 			if err == nil {
-				out.WriteString(util.Colorizef(util.ColorGreen, "[+] RTMR1 %s\n[+] RTMR2 %s\n", expectedRtmr1, expectedRtmr2))
+				out.WriteString(fmt.Sprintf("[+] RTMR1 %s\n[+] RTMR2 %s\n", expectedRtmr1, expectedRtmr2))
 			}
 
 			return strings.TrimRight(out.String(), "\n"), err
@@ -123,13 +121,13 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 			actualSnp := other.Registers[0]
 
 			if expectedSnp != actualSnp {
-				out.WriteString(util.Colorizef(util.ColorRed, "[-] SNP   %s != %s\n", expectedSnp, actualSnp))
+				out.WriteString(fmt.Sprintf("[-] SNP   %s != %s\n", expectedSnp, actualSnp))
 				err = ErrMultiPlatformSevSnpMismatch
 			} else {
-				out.WriteString(util.Colorizef(util.ColorGreen, "[+] SNP   %s\n", expectedSnp))
+				out.WriteString(fmt.Sprintf("[+] SNP   %s\n", expectedSnp))
 			}
 
-			out.WriteString(util.Colorizef(util.ColorGrey, "[i] RTMR1 %s\n[i] RTMR2 %s", expectedRtmr1, expectedRtmr2))
+			out.WriteString(fmt.Sprintf("[i] RTMR1 %s\n[i] RTMR2 %s", expectedRtmr1, expectedRtmr2))
 
 			return strings.TrimRight(out.String(), "\n"), err
 		default:
@@ -151,6 +149,32 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 func (m *Measurement) Equals(other *Measurement) error {
 	_, err := m.EqualsDisplay(other)
 	return err
+}
+
+func (m *Measurement) String() string {
+	var out strings.Builder
+
+	var platform []string
+	switch m.Type {
+	case SnpTdxMultiPlatformV1:
+		platform = []string{"SNP", "RTMR1", "RTMR2"}
+	case SevGuestV1, SevGuestV2:
+		platform = []string{"SNP"}
+	case TdxGuestV1, TdxGuestV2:
+		platform = []string{"MRTD", "RTMR0", "RTMR1", "RTMR2", "RTMR3"}
+	}
+
+	out.WriteString(string(m.Type))
+	for i, register := range m.Registers {
+		var label string
+		if platform != nil && i < len(platform) {
+			label = fmt.Sprintf("%-5s", platform[i])
+		} else {
+			label = fmt.Sprintf("[%d]", i)
+		}
+		out.WriteString(fmt.Sprintf("\n%s %s", label, register))
+	}
+	return out.String()
 }
 
 // Document represents an attestation document
@@ -256,8 +280,10 @@ func Fetch(host string) (*Document, error) {
 }
 
 // TLSPublicKey returns the TLS public key of a given host
-func TLSPublicKey(host string) (string, error) {
-	conn, err := tls.Dial("tcp", host+":443", &tls.Config{})
+func TLSPublicKey(host string, insecure bool) (string, error) {
+	conn, err := tls.Dial("tcp", host+":443", &tls.Config{
+		InsecureSkipVerify: insecure,
+	})
 	if err != nil {
 		return "", err
 	}
