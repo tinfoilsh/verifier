@@ -21,6 +21,8 @@ type GroundTruth struct {
 	CodeMeasurement     *attestation.Measurement         `json:"code_measurement"`
 	EnclaveMeasurement  *attestation.Measurement         `json:"enclave_measurement"`
 	HardwareMeasurement *attestation.HardwareMeasurement `json:"hardware_measurement,omitempty"`
+	CodeFingerprint     string                           `json:"code_fingerprint"`
+	EnclaveFingerprint  string                           `json:"enclave_fingerprint"`
 }
 
 type SecureClient struct {
@@ -184,9 +186,11 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		TLSPublicKey:        enclaveVerification.TLSPublicKeyFP,
 		HPKEPublicKey:       enclaveVerification.HPKEPublicKey,
 		Digest:              digest,
+		HardwareMeasurement: matchedHwMeasurement,
 		CodeMeasurement:     codeMeasurement,
 		EnclaveMeasurement:  enclaveVerification.Measurement,
-		HardwareMeasurement: matchedHwMeasurement,
+		CodeFingerprint:     codeMeasurement.Fingerprint(),
+		EnclaveFingerprint:  enclaveVerification.Measurement.Fingerprint(),
 	}
 	return s.groundTruth, err
 }
