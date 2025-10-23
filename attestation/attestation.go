@@ -56,7 +56,7 @@ type Measurement struct {
 
 // Fingerprint computes a SHA-256 hash of the measurement type and registers. Not used for direct comparison.
 func (m Measurement) Fingerprint() string {
-	all := string(m.Type) + strings.Join(m.Registers, "")
+	all := string(m.Type) + strings.Join(m.Registers, "|")
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
 }
 
