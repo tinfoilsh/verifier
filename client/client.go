@@ -15,12 +15,14 @@ import (
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
-	TLSPublicKey       string                   `json:"tls_public_key,omitempty"`
-	HPKEPublicKey      string                   `json:"hpke_public_key,omitempty"`
-	Digest             string                   `json:"digest"`
-	CodeMeasurement    *attestation.Measurement `json:"code_measurement"`
-	EnclaveMeasurement *attestation.Measurement `json:"enclave_measurement"`
-	HardwarePlatform   string                   `json:"hardware_platform,omitempty"`
+	TLSPublicKey        string                           `json:"tls_public_key,omitempty"`
+	HPKEPublicKey       string                           `json:"hpke_public_key,omitempty"`
+	Digest              string                           `json:"digest"`
+	CodeMeasurement     *attestation.Measurement         `json:"code_measurement"`
+	EnclaveMeasurement  *attestation.Measurement         `json:"enclave_measurement"`
+	HardwareMeasurement *attestation.HardwareMeasurement `json:"hardware_measurement,omitempty"`
+	CodeFingerprint     string                           `json:"code_fingerprint"`
+	EnclaveFingerprint  string                           `json:"enclave_fingerprint"`
 }
 
 type SecureClient struct {
@@ -152,7 +154,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	// Fetch hardware platform measurements if required
-	var hwPlatformID string
+	var matchedHwMeasurement *attestation.HardwareMeasurement
 	if enclaveAttestation.Format == attestation.TdxGuestV1 {
 		var hwMeasurements = s.hardwareMeasurements
 		if len(s.hardwareMeasurements) == 0 {
@@ -166,11 +168,10 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 			}
 		}
 
-		matchedHwMeasurement, err := attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
+		matchedHwMeasurement, err = attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
 		if err != nil {
 			return nil, fmt.Errorf("failed to verify hardware measurements: %v", err)
 		}
-		hwPlatformID = matchedHwMeasurement.ID
 	}
 
 	if err := enclaveValidPubKey(s.enclave, enclaveVerification); err != nil {
@@ -182,12 +183,14 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	s.groundTruth = &GroundTruth{
-		TLSPublicKey:       enclaveVerification.TLSPublicKeyFP,
-		HPKEPublicKey:      enclaveVerification.HPKEPublicKey,
-		Digest:             digest,
-		CodeMeasurement:    codeMeasurement,
-		EnclaveMeasurement: enclaveVerification.Measurement,
-		HardwarePlatform:   hwPlatformID,
+		TLSPublicKey:        enclaveVerification.TLSPublicKeyFP,
+		HPKEPublicKey:       enclaveVerification.HPKEPublicKey,
+		Digest:              digest,
+		HardwareMeasurement: matchedHwMeasurement,
+		CodeMeasurement:     codeMeasurement,
+		EnclaveMeasurement:  enclaveVerification.Measurement,
+		CodeFingerprint:     codeMeasurement.Fingerprint(),
+		EnclaveFingerprint:  enclaveVerification.Measurement.Fingerprint(),
 	}
 	return s.groundTruth, err
 }
@@ -247,4 +250,14 @@ func (s *SecureClient) Get(url string, headers map[string]string) (*Response, er
 		req.Header.Set(k, v)
 	}
 	return s.makeRequest(req)
+}
+
+// VerifyJSON verifies an enclave against a repo and returns the verification data as a JSON string
+func VerifyJSON(enclave, repo string) (string, error) {
+	client := NewSecureClient(enclave, repo)
+	_, err := client.Verify()
+	if err != nil {
+		return "", err
+	}
+	return client.GroundTruthJSON()
 }
