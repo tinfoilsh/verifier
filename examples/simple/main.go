@@ -3,10 +3,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/charmbracelet/log"
 
 	"github.com/tinfoilsh/verifier/attestation"
 	"github.com/tinfoilsh/verifier/github"
@@ -21,10 +20,11 @@ var (
 )
 
 func main() {
+	log.SetReportTimestamp(false)
 	flag.Parse()
 
 	if *insecure {
-		log.Println("Running in insecure mode")
+		log.Warn("Running in insecure TLS mode")
 		http.DefaultTransport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
@@ -32,7 +32,7 @@ func main() {
 		}
 	}
 
-	log.Println("Fetching SigStore trust root")
+	log.Info("Fetching SigStore trust root")
 	sigstoreClient, err := sigstore.NewClient()
 	if err != nil {
 		log.Fatalf("failed to fetch trust root: %v", err)
@@ -40,24 +40,19 @@ func main() {
 
 	var codeMeasurements *attestation.Measurement
 	if *repo != "" {
-		log.WithFields(log.Fields{
-			"repo": *repo,
-		}).Printf("Fetching latest release")
+		log.With("repo", *repo).Info("Fetching latest release")
 		digest, err := github.FetchLatestDigest(*repo)
 		if err != nil {
 			log.Fatalf("failed to fetch latest release: %v", err)
 		}
 
-		log.WithFields(log.Fields{
-			"repo":   *repo,
-			"digest": digest,
-		}).Printf("Fetching runtime attestation")
+		log.With("repo", *repo, "digest", digest).Info("Fetching attestation bundle")
 		sigstoreBundle, err := github.FetchAttestationBundle(*repo, digest)
 		if err != nil {
 			log.Fatalf("failed to fetch attestation bundle: %v", err)
 		}
 
-		log.Printf("Verifying source attestation")
+		log.Info("Verifying source attestation")
 		codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
 		if err != nil {
 			log.Fatalf("failed to verify attested measurements: %v", err)
@@ -66,72 +61,68 @@ func main() {
 
 	var enclaveAttestation *attestation.Document
 	if *attestationFile != "" {
-		log.Printf("Reading enclave attestation from %s", *attestationFile)
+		log.With("file", *attestationFile).Info("Reading enclave attestation")
 		enclaveAttestation, err = attestation.FromFile(*attestationFile)
 		if err != nil {
 			log.Fatalf("failed to read enclave attestation: %v", err)
 		}
 	} else {
-		log.Printf("Fetching runtime attestation from %s", *enclave)
+		log.With("enclave", *enclave).Info("Fetching runtime attestation")
 		enclaveAttestation, err = attestation.Fetch(*enclave)
 		if err != nil {
 			log.Fatalf("failed to fetch enclave measurements: %v", err)
 		}
 	}
 
-	log.Printf("Fetching TLS public key from %s", *enclave)
-	tlsPublicKey, err := attestation.TLSPublicKey(*enclave)
+	log.With("enclave", *enclave).Debug("Fetching TLS public key")
+	tlsPublicKey, err := attestation.TLSPublicKey(*enclave, *insecure)
 	if err != nil {
 		log.Fatalf("failed to fetch TLS public key: %v", err)
 	}
-	log.Printf("Connection TLS public key: %s", tlsPublicKey)
+	log.With("tls_public_key", tlsPublicKey).Info("Connection TLS public key")
 
-	log.Println("Verifying enclave measurements")
+	log.Info("Verifying enclave measurements")
 	verification, err := enclaveAttestation.Verify()
 	if err != nil {
 		log.Fatalf("failed to verify enclave measurements: %v", err)
 	}
 
-	log.WithFields(log.Fields{
-		"enclave": verification.Measurement,
-		"runtime": codeMeasurements,
-	}).Info("Measurements")
+	log.With("runtime", verification.Measurement, "source", codeMeasurements).Info("Measurements")
 
-	if enclaveAttestation.Format == attestation.TdxGuestV1 {
-		log.Println("Fetching latest hardware measurements")
+	if enclaveAttestation.Format == attestation.TdxGuestV1 || enclaveAttestation.Format == attestation.TdxGuestV2 {
+		log.Info("Fetching latest hardware measurements")
 		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
 		if err != nil {
 			log.Fatalf("failed to fetch hardware measurements: %v", err)
 		}
 
-		log.Println("Verifying hardware measurements")
+		log.Info("Verifying hardware measurements")
 		hwMeasurement, err := attestation.VerifyHardware(hwMeasurements, verification.Measurement)
 		if err != nil {
 			log.Fatalf("failed to verify hardware measurements: %v", err)
 		}
-		log.Printf("Matched hardware measurement: %s", hwMeasurement.ID)
+		log.With("hardware_measurement", hwMeasurement.ID).Info("Matched hardware measurement")
 	}
 
-	log.WithFields(log.Fields{
-		"tls_public_key_fp":  verification.TLSPublicKeyFP,
-		"hpke_public_key_fp": verification.HPKEPublicKey,
-	}).Println("Verified remote attestation")
+	log.With(
+		"tls_public_key_fp", verification.TLSPublicKeyFP,
+		"hpke_public_key_fp", verification.HPKEPublicKey,
+	).Info("Verified remote attestation")
 
 	if verification.TLSPublicKeyFP != tlsPublicKey {
 		log.Fatalf("TLS public key fingerprint mismatch: expected %s, got %s", tlsPublicKey, verification.TLSPublicKeyFP)
 	} else {
-		log.Println("TLS public key fingerprint matches")
+		log.Info("TLS public key fingerprint matches")
 	}
 
 	if codeMeasurements != nil {
 		out, err := codeMeasurements.EqualsDisplay(verification.Measurement)
-		fmt.Println(out)
 		if err != nil {
-			log.Fatalf("Measurements do not match: %v", err)
+			log.With("diff", out).Fatalf("Measurements do not match: %v", err)
 		} else {
-			log.Println("Measurements match")
+			log.With("match", out).Info("Measurements match")
 		}
 	} else {
-		log.Println("No code measurements provided, skipping comparison")
+		log.Info("No code measurements provided, skipping comparison")
 	}
 }

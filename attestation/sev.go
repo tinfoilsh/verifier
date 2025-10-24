@@ -19,8 +19,7 @@ import (
 	"github.com/tinfoilsh/verifier/util"
 )
 
-// https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
-//
+//go:generate sh -xc "curl -o genoa_cert_chain.pem https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain"
 //go:embed genoa_cert_chain.pem
 var vcekGenoaCertChain []byte
 
