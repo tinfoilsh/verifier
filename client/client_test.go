@@ -13,7 +13,7 @@ func TestVerify(t *testing.T) {
 		enclave string
 		repo    string
 	}{
-		{"deepseek-r1-0528.inf3.tinfoil.sh", "tinfoilsh/confidential-deepseek-r1-0528"},
+		{"deepseek-r1-0528.inf9.tinfoil.sh", "tinfoilsh/confidential-deepseek-r1-0528"},
 		{"inference.tinfoil.sh", "tinfoilsh/confidential-inference-proxy"},
 		{"llama3-3-70b.model.tinfoil.sh", "tinfoilsh/confidential-llama3-3-70b"},
 	}
