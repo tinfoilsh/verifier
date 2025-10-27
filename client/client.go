@@ -189,8 +189,8 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		HardwareMeasurement: matchedHwMeasurement,
 		CodeMeasurement:     codeMeasurement,
 		EnclaveMeasurement:  enclaveVerification.Measurement,
-		CodeFingerprint:     codeMeasurement.Fingerprint(),
-		EnclaveFingerprint:  enclaveVerification.Measurement.Fingerprint(),
+		CodeFingerprint:     attestation.Fingerprint(codeMeasurement, matchedHwMeasurement, codeMeasurement.Type),
+		EnclaveFingerprint:  attestation.Fingerprint(enclaveVerification.Measurement, nil, enclaveVerification.Measurement.Type), // hardware measurement not needed for enclave fingerprint
 	}
 	return s.groundTruth, err
 }

@@ -53,13 +53,24 @@ type Measurement struct {
 }
 
 // Fingerprint computes a SHA-256 hash of the measurement type and registers. Not used for direct comparison.
-func Fingerprint(m *Measurement, hw *HardwareMeasurement) string {
+func Fingerprint(m *Measurement, hw *HardwareMeasurement, targetType PredicateType) string {
 	var registers []string
-	switch m.Type {
-	case SnpTdxMultiPlatformV1:
-		registers = []string{m.Registers[0], m.Registers[1], m.Registers[2], m.Registers[3]}
-	case TdxGuestV1, TdxGuestV2:
-		registers = []string{hw.MRTD, hw.RTMR0, m.Registers[2], m.Registers[3], m.Registers[4]}
+
+	if m.Type == SnpTdxMultiPlatformV1 && hw != nil { // Source
+		switch targetType {
+		case SevGuestV1, SevGuestV2:
+			registers = []string{m.Registers[0]}
+		case TdxGuestV1, TdxGuestV2:
+			registers = []string{hw.MRTD, hw.RTMR0, m.Registers[3], m.Registers[4]}
+		default:
+			return "unsupported target type"
+		}
+	} else if m.Type == TdxGuestV1 || m.Type == TdxGuestV2 { // Runtime
+		registers = []string{hw.MRTD, hw.RTMR0, m.Registers[2], m.Registers[3]}
+	} else if m.Type == SevGuestV1 || m.Type == SevGuestV2 {
+		registers = []string{m.Registers[0]}
+	} else {
+		return "unsupported measurement type"
 	}
 
 	all := strings.Join(registers, "|")

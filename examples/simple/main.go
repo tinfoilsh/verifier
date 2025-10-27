@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	repo            = flag.String("r", "tinfoilsh/confidential-model-router", "config repo")
-	enclave         = flag.String("e", "router.inf7.tinfoil.sh", "enclave host")
+	repo            = flag.String("r", "tinfoilsh/confidential-llama-qwen", "config repo")
+	enclave         = flag.String("e", "llama-qwen.inf8.tinfoil.sh", "enclave host")
 	insecure        = flag.Bool("i", false, "TLS insecure skip verify")
 	attestationFile = flag.String("a", "", "path to attestation document file")
 )

@@ -43,8 +43,6 @@ func TestClientGroundTruthJSON(t *testing.T) {
 		Digest:             "feabcd",
 		CodeMeasurement:    codeMeasurement,
 		EnclaveMeasurement: enclaveMeasurement,
-		CodeFingerprint:    codeMeasurement.Fingerprint(),
-		EnclaveFingerprint: enclaveMeasurement.Fingerprint(),
 	}
 	client := &SecureClient{
 		groundTruth: gt,
