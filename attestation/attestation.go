@@ -52,6 +52,36 @@ type Measurement struct {
 	Registers []string      `json:"registers"`
 }
 
+// Fingerprint computes a SHA-256 hash of the measurement type and registers. Not used for direct comparison.
+func Fingerprint(m *Measurement, hw *HardwareMeasurement, targetType PredicateType) (string, error) {
+	var registers []string
+
+	switch m.Type {
+	case SnpTdxMultiPlatformV1: // Source
+		switch targetType {
+		case SevGuestV1, SevGuestV2:
+			registers = []string{m.Registers[0]}
+		case TdxGuestV1, TdxGuestV2:
+			if hw == nil {
+				return "", fmt.Errorf("hardware measurement required for TDX guest types")
+			}
+			registers = []string{hw.MRTD, hw.RTMR0, m.Registers[1], m.Registers[2]}
+		default:
+			return "", fmt.Errorf("unsupported target type %s", targetType)
+		}
+	case TdxGuestV1, TdxGuestV2: // Runtime
+		registers = []string{m.Registers[0], m.Registers[1], m.Registers[2], m.Registers[3]}
+	case SevGuestV1, SevGuestV2:
+		registers = []string{m.Registers[0]}
+	default:
+		return "", fmt.Errorf("unsupported measurement type %s", m.Type)
+	}
+
+	all := strings.Join(registers, "|")
+	hash := sha256.Sum256([]byte(all))
+	return fmt.Sprintf("%x", hash), nil
+}
+
 type Verification struct {
 	Measurement    *Measurement `json:"measurement"`
 	TLSPublicKeyFP string       `json:"tls_public_key,omitempty"`

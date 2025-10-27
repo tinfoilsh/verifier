@@ -28,18 +28,21 @@ func TestVerify(t *testing.T) {
 }
 
 func TestClientGroundTruthJSON(t *testing.T) {
+	codeMeasurement := &attestation.Measurement{
+		Type:      attestation.SnpTdxMultiPlatformV1,
+		Registers: []string{"a", "b"},
+	}
+	enclaveMeasurement := &attestation.Measurement{
+		Type:      attestation.TdxGuestV1,
+		Registers: []string{"a"},
+	}
+
 	gt := &GroundTruth{
-		TLSPublicKey:  "pubkey",
-		HPKEPublicKey: "hpkekey",
-		Digest:        "feabcd",
-		CodeMeasurement: &attestation.Measurement{
-			Type:      attestation.SnpTdxMultiPlatformV1,
-			Registers: []string{"a", "b"},
-		},
-		EnclaveMeasurement: &attestation.Measurement{
-			Type:      attestation.TdxGuestV1,
-			Registers: []string{"a"},
-		},
+		TLSPublicKey:       "pubkey",
+		HPKEPublicKey:      "hpkekey",
+		Digest:             "feabcd",
+		CodeMeasurement:    codeMeasurement,
+		EnclaveMeasurement: enclaveMeasurement,
 	}
 	client := &SecureClient{
 		groundTruth: gt,
