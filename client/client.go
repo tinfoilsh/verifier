@@ -155,7 +155,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 
 	// Fetch hardware platform measurements if required
 	var matchedHwMeasurement *attestation.HardwareMeasurement
-	if enclaveAttestation.Format == attestation.TdxGuestV1 {
+	if enclaveAttestation.Format == attestation.TdxGuestV1 || enclaveAttestation.Format == attestation.TdxGuestV2 {
 		var hwMeasurements = s.hardwareMeasurements
 		if len(s.hardwareMeasurements) == 0 {
 			sigstoreClient, err := s.getSigstoreClient()
@@ -182,6 +182,15 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		return nil, err
 	}
 
+	codeFingerprint, err := attestation.Fingerprint(codeMeasurement, matchedHwMeasurement, enclaveVerification.Measurement.Type)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute code fingerprint: %v", err)
+	}
+	enclaveFingerprint, err := attestation.Fingerprint(enclaveVerification.Measurement, matchedHwMeasurement, enclaveVerification.Measurement.Type)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute enclave fingerprint: %v", err)
+	}
+
 	s.groundTruth = &GroundTruth{
 		TLSPublicKey:        enclaveVerification.TLSPublicKeyFP,
 		HPKEPublicKey:       enclaveVerification.HPKEPublicKey,
@@ -189,8 +198,8 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		HardwareMeasurement: matchedHwMeasurement,
 		CodeMeasurement:     codeMeasurement,
 		EnclaveMeasurement:  enclaveVerification.Measurement,
-		CodeFingerprint:     attestation.Fingerprint(codeMeasurement, matchedHwMeasurement, codeMeasurement.Type),
-		EnclaveFingerprint:  attestation.Fingerprint(enclaveVerification.Measurement, nil, enclaveVerification.Measurement.Type), // hardware measurement not needed for enclave fingerprint
+		CodeFingerprint:     codeFingerprint,
+		EnclaveFingerprint:  enclaveFingerprint,
 	}
 	return s.groundTruth, err
 }
