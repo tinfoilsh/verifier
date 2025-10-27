@@ -53,9 +53,18 @@ type Measurement struct {
 }
 
 // Fingerprint computes a SHA-256 hash of the measurement type and registers. Not used for direct comparison.
-func (m Measurement) Fingerprint() string {
-	all := string(m.Type) + strings.Join(m.Registers, "|")
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(all)))
+func Fingerprint(m *Measurement, hw *HardwareMeasurement) string {
+	var registers []string
+	switch m.Type {
+	case SnpTdxMultiPlatformV1:
+		registers = []string{m.Registers[0], m.Registers[1], m.Registers[2], m.Registers[3]}
+	case TdxGuestV1, TdxGuestV2:
+		registers = []string{hw.MRTD, hw.RTMR0, m.Registers[2], m.Registers[3], m.Registers[4]}
+	}
+
+	all := strings.Join(registers, "|")
+	hash := sha256.Sum256([]byte(all))
+	return fmt.Sprintf("%x", hash)
 }
 
 type Verification struct {
