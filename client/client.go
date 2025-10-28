@@ -125,32 +125,32 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		var err error
 		digest, err = github.FetchLatestDigest(s.repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch latest release: %v", err)
+			return nil, fmt.Errorf("fetchDigest: failed to fetch latest release: %v", err)
 		}
 
 		sigstoreClient, err := s.getSigstoreClient()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+			return nil, fmt.Errorf("verifyCode: failed to create sigstore client: %v", err)
 		}
 
 		sigstoreBundle, err := github.FetchAttestationBundle(s.repo, digest)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch attestation bundle: %v", err)
+			return nil, fmt.Errorf("verifyCode: failed to fetch attestation bundle: %v", err)
 		}
 
 		codeMeasurement, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, s.repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to verify attested measurements: %v", err)
+			return nil, fmt.Errorf("verifyCode: failed to verify attested measurements: %v", err)
 		}
 	}
 
 	enclaveAttestation, err := attestation.Fetch(s.enclave)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch enclave measurements: %v", err)
+		return nil, fmt.Errorf("verifyEnclave: failed to fetch enclave measurements: %v", err)
 	}
 	enclaveVerification, err := enclaveAttestation.Verify()
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify enclave measurements: %v", err)
+		return nil, fmt.Errorf("verifyEnclave: failed to verify enclave measurements: %v", err)
 	}
 
 	// Fetch hardware platform measurements if required
@@ -160,35 +160,35 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		if len(s.hardwareMeasurements) == 0 {
 			sigstoreClient, err := s.getSigstoreClient()
 			if err != nil {
-				return nil, fmt.Errorf("failed to create sigstore client: %v", err)
+				return nil, fmt.Errorf("verifyHardware: failed to create sigstore client: %v", err)
 			}
 			hwMeasurements, err = sigstoreClient.LatestHardwareMeasurements()
 			if err != nil {
-				return nil, fmt.Errorf("failed to fetch TDX platform measurements: %v", err)
+				return nil, fmt.Errorf("verifyHardware: failed to fetch TDX platform measurements: %v", err)
 			}
 		}
 
 		matchedHwMeasurement, err = attestation.VerifyHardware(hwMeasurements, enclaveVerification.Measurement)
 		if err != nil {
-			return nil, fmt.Errorf("failed to verify hardware measurements: %v", err)
+			return nil, fmt.Errorf("verifyHardware: failed to verify hardware measurements: %v", err)
 		}
 	}
 
 	if err := enclaveValidPubKey(s.enclave, enclaveVerification); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validateTLS: %v", err)
 	}
 
 	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("measurements: %v", err)
 	}
 
 	codeFingerprint, err := attestation.Fingerprint(codeMeasurement, matchedHwMeasurement, enclaveVerification.Measurement.Type)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute code fingerprint: %v", err)
+		return nil, fmt.Errorf("measurements: failed to compute code fingerprint: %v", err)
 	}
 	enclaveFingerprint, err := attestation.Fingerprint(enclaveVerification.Measurement, matchedHwMeasurement, enclaveVerification.Measurement.Type)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute enclave fingerprint: %v", err)
+		return nil, fmt.Errorf("measurements: failed to compute enclave fingerprint: %v", err)
 	}
 
 	s.groundTruth = &GroundTruth{
