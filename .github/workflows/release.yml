@@ -42,13 +42,6 @@ jobs:
             -ldflags="-buildid= -X main.version=${VERSION}" \
             -o tinfoil-verifier-${VERSION}.wasm
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            TinfoilVerifier.xcframework.zip
-            wasm/tinfoil-verifier-*.wasm
-
       - name: Copy WASM to public folder
         run: |
           mkdir -p public
@@ -65,6 +58,13 @@ jobs:
         with:
           folder: public
 
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            TinfoilVerifier.xcframework.zip
+            wasm/tinfoil-verifier-*.wasm
+  
   # notify-downstreams:
   #   needs: release
   #   runs-on: ubuntu-latest
