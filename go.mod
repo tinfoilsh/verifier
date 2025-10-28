@@ -12,7 +12,6 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/theupdateframework/go-tuf/v2 v2.2.0
 	google.golang.org/protobuf v1.36.10
-	marwan.io/wasm-fetch v0.1.0
 )
 
 require (

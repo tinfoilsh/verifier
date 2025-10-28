@@ -17,6 +17,8 @@ import (
 	"github.com/tinfoilsh/verifier/util"
 )
 
+//go:generate sh -c "cp $(go env GOROOT)/lib/wasm/wasm_exec.js ."
+
 var version = "dev" // set by build process
 
 //go:embed trusted_root.json
