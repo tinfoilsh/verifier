@@ -38,10 +38,31 @@ jobs:
           gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
           zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
+      - name: Build WASM
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          cd wasm & GOOS=js GOARCH=wasm go build \
+            -trimpath \
+            -ldflags="-buildid= -X main.version=${VERSION}" \
+            -o tinfoil-verifier-${VERSION}.wasm
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: TinfoilVerifier.xcframework.zip
+          files: |
+            TinfoilVerifier.xcframework.zip
+            tinfoil-verifier-*.wasm
+
+      - name: Copy WASM to public folder
+        run: |
+          mkdir -p public
+          cp wasm/tinfoil-verifier-*.wasm public
+          cp wasm/tinfoil-verifier-*.wasm public/tinfoil-verifier.wasm
+
+      - name: Deploy to GH pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: public
 
   # notify-downstreams:
   #   needs: release

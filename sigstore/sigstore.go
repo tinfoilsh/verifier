@@ -39,6 +39,14 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+func NewClientFromJSON(trustRootJSON []byte) (*Client, error) {
+	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("parsing trust root: %w", err)
+	}
+	return &Client{trustRoot: trustRoot}, nil
+}
+
 // FetchTrustRoot fetches the trust root from the Sigstore TUF repo
 func FetchTrustRoot() ([]byte, error) {
 	tufOpts := tuf.

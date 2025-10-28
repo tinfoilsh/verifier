@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinfoil Verifier</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .header {
+            background: #0A0A0A;
+            border: 1px solid #1F1F1F;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            padding: 24px;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            height: 40px;
+            width: 40px;
+        }
+
+        .header-text h1 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .header-text p {
+            font-size: 0.875rem;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+            color: #d1d5db;
+            margin: 0;
+        }
+
+        .card {
+            background: #0A0A0A;
+            border: 1px solid #1F1F1F;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-row .form-group:last-child {
+            flex: 0 0 auto;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ffffff;
+            font-size: 0.875rem;
+        }
+
+        .input {
+            background: #0A0A0A;
+            border: 1px solid #1F1F1F;
+            border-radius: 6px;
+            color: #ffffff;
+            transition: all 0.2s ease;
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 0.875rem;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #2F2F2F;
+            box-shadow: 0 0 0 1px #2F2F2F;
+        }
+
+        .input::placeholder {
+            color: #666666;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .button {
+            background: #ffffff;
+            color: #000000;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .button:hover:not(:disabled) {
+            background: #eaeaea;
+        }
+
+        .button-secondary {
+            background: #0A0A0A;
+            color: #ffffff;
+            border: 1px solid #1F1F1F;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex: 1;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background: #1F1F1F;
+            border-color: #2F2F2F;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .logs-section .card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #1F1F1F;
+        }
+
+        .logs-header h3 {
+            color: #ffffff;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .clear-logs {
+            padding: 6px 12px;
+            background: #f87171;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-logs:hover {
+            background: #ef4444;
+        }
+
+        #logs {
+            width: 100%;
+            height: 400px;
+            padding: 20px;
+            border: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #000000;
+            color: #d4d4d4;
+            resize: vertical;
+            overflow-y: auto;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 500;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        .status.success {
+            background-color: #34d399/10;
+            color: #34d399;
+            border: 1px solid #34d399/20;
+        }
+
+        .status.error {
+            background-color: #f87171/10;
+            color: #f87171;
+            border: 1px solid #f87171/20;
+        }
+
+        .status.loading {
+            background-color: #818cf8/10;
+            color: #818cf8;
+            border: 1px solid #818cf8/20;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid #818cf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header {
+                padding: 32px 0;
+                margin-bottom: 32px;
+            }
+            
+            .header h1 {
+                font-size: 2.25rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            body {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAALMaVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIiB4OnhtcHRrPSJYTVAgQ29yZSA2LjAuMCI+CiAgIDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgICAgIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSIiCiAgICAgICAgICAgIHhtbG5zOnRpZmY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vdGlmZi8xLjAvIgogICAgICAgICAgICB4bWxuczpleGlmPSJodHRwOi8vbnMuYWRvYmUuY29tL2V4aWYvMS4wLyI+CiAgICAgICAgIDx0aWZmOllSZXNvbHV0aW9uPjMwMDwvdGlmZjpZUmVzb2x1dGlvbj4KICAgICAgICAgPHRpZmY6UmVzb2x1dGlvblVuaXQ+MjwvdGlmZjpSZXNvbHV0aW9uVW5pdD4KICAgICAgICAgPHRpZmY6WFJlc29sdXRpb24+MzAwPC90aWZmOlhSZXNvbHV0aW9uPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICAgICA8ZXhpZjpQaXhlbFhEaW1lbnNpb24+MTI4PC9leGlmOlBpeGVsWERpbWVuc2lvbj4KICAgICAgICAgPGV4aWY6Q29sb3JTcGFjZT4xPC9leGlmOkNvbG9yU3BhY2U+CiAgICAgICAgIDxleGlmOlBpeGVsWURpbWVuc2lvbj4xMjg8L2V4aWY6UGl4ZWxZRGltZW5zaW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KUIgbRwAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAftQTFRFR3BM////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////99ohJwAAAKh0Uk5TAPwC+gT+AwH7/QUSvu6F3Q1NwrRMGG98GehDbghO7zIb3PnDHPizEeSCUY8mY+bRC0Dw5XHN0rLbsU8w7bzQc2Kj4GTqoSVy1ZGgQaI9etYfFAzJI+yKDvY3f2CoRietLFAxt1UXWp07g8sHSpfaeH3AROmHsPPUtTneGl2BhimvLg9S95V2muKACXCTecHGRZI/aKtJPsSQnx5h53Q2FXvFZjyO4+FLT3i6jgAAA6pJREFUWMOllldjFDccxGd1Wmn3DkxsHy04rmCMscE2BgIBQgkJvaYDKZBKCwTSe0JNr5T0EBLmY/Kwku5u927LsQ9+8c1oNPr/dgUkH4F/pyHR/iNxm7vvwUFj/39csRCq/QC3uIhDgG47wT8MS9ze7iYUJumTHreg3KbBDgakz8G+tmrQ+LWXPkmPAxWIdir8hgFJMuAwtC4e4MQ7DGkclhQvUmGt1ZMhRws7CKyhVzPoHStYpMALg/StAT0u7ylWpMR5U2H0lLi1kIHG4ismgCvysSLzJHHINeDbv5MFitQ4S4+kz0e+NhnCImAKvBYtHPBnbGLJbCI/mAqXowpD/oKJ5WY3Jd7IuQmND56gTzLkSqEw1mt24XE8X5ESD0cBAn4FJTFqDHwuOpqvBrmBYVThbGhILDEzkRNMhZPRkgFPQQFaY7UDc3UOMBWej2rz+R4EAIHKgCky4EeZRQo897R5k8wwx6bQN+gG88UsB4nXo8AeP7S/LWPcRAjZ+2h6kRpPvU+fpM/Nn7vBkdhu5ikTTIlXosUCdtTCamDIFFnijtQIAusNBhc+qVtJYeEyMw7pYAo8E9Xl8dOGpBKThkyf/LF1kQoXLQbVxqRlO5/0uKK/1S40Xj5nMFhVToTb6sDsagWmxAKLwaV4TIEvVzkwl7bahD5uMFjXn1hDYWzKgbmxaZEKRywGrzbZpcQXNTAfalaDwmGLwe5m/68H88HFyXkSePxtU2FX05K0xrADc00STIlnLQYbm5ckUJnlwLwa/43GxGlT4UilxTEp9JXMPPlcG3NQeMli8GTLUStjiwNzZgxMgWMGg9JnrYGT+MGBuaEBTIE+e8jDKcBq4LoD82Z9BImltsLRNGAbwJyuzZPG/mXmDPf2pH6CJHbWwLzm2pL4yVa4J+O1V8Yfbp5GHJga35kznNqX9Q0U2OXA/NaAqbDTYrAp8/MjMLEtDqbCLvsm+T7DQCsp0b/ZvOg9/hYVuW/KfA3WQ6g0sQaAv/7sjoO5xwbYVgW0ShFX7v+7+3e6O5gBs2evu4qw64GERU08t3u+QcE+Ad+CRtVdikIvZpEUB57PhjvcGeAgB93N1KtZZIrph0FIjmPOABkkLJBHTK4begO4b8GshEWnqLw599108cwZH3fOAyCBA0mLlSMZ4o7OeVFNgJbJFGEusVRm8ptYhLnFdRZzGizyi9MsfM+Jq7Nbi5tb1Ik7M8Vxi7rY1ZzimEU74prFgen/D3bcySm+C8a5fehYZBKWAAAAAElFTkSuQmCC" alt="Tinfoil Logo" class="header-logo">
+                <div class="header-text">
+                    <h1>Tinfoil Verifier</h1>
+                    <p>{{ systemInfo.hostname || 'Loading...' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <form id="verifyForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="enclave">Enclave Hostname</label>
+                        <input 
+                            type="text" 
+                            id="enclave" 
+                            name="enclave" 
+                            class="input"
+                            placeholder="e.g., example.tinfoil.sh"
+                            value="router.inf6.tinfoil.sh"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="repo">Repository</label>
+                        <input 
+                            type="text" 
+                            id="repo" 
+                            name="repo" 
+                            class="input"
+                            placeholder="e.g., owner/repository"
+                            value="tinfoilsh/confidential-model-router"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="button" id="verifyBtn">
+                            Verify
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="logs-section">
+            <div class="card">
+                <div class="logs-header">
+                    <h3>Verification Logs</h3>
+                    <button class="clear-logs" id="clearLogsBtn">Clear Logs</button>
+                </div>
+                <textarea id="logs" readonly placeholder="Logs will appear here when verification starts..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        // Log capture functionality
+        const logsTextarea = document.getElementById('logs');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        function appendLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '[ERROR]' : type === 'warn' ? '[WARN]' : '[INFO]';
+            const logEntry = `[${timestamp}] ${prefix} ${message}\n`;
+            logsTextarea.value += logEntry;
+            logsTextarea.scrollTop = logsTextarea.scrollHeight;
+        }
+
+        // Override console methods to capture logs
+        console.log = function(...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            appendLog(message, 'log');
+            originalConsoleLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            appendLog(message, 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            appendLog(message, 'warn');
+            originalConsoleWarn.apply(console, args);
+        };
+
+        // UI Elements
+        const form = document.getElementById('verifyForm');
+        const enclaveInput = document.getElementById('enclave');
+        const repoInput = document.getElementById('repo');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        const statusDiv = document.getElementById('status');
+
+        // Status display functions
+        function showStatus(message, type) {
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'loading') {
+                statusDiv.innerHTML = `<span class="loading-spinner"></span>${message}`;
+            } else {
+                statusDiv.innerHTML = message;
+            }
+        }
+
+        function hideStatus() {
+            statusDiv.style.display = 'none';
+        }
+
+        // Form handlers
+        clearLogsBtn.addEventListener('click', () => {
+            logsTextarea.value = '';
+        });
+
+        // WASM loading and verification
+        let wasmReady = false;
+
+        async function loadWASM() {
+            try {
+                appendLog('Loading WASM module...');
+                const go = new Go();
+                const result = await WebAssembly.instantiateStreaming(fetch("tinfoil-verifier.wasm"), go.importObject);
+                go.run(result.instance);
+                wasmReady = true;
+                appendLog('WASM module loaded successfully');
+                appendLog(`Verifier version: ${window.verifierVersion || 'unknown'}`);
+            } catch (error) {
+                appendLog(`Failed to load WASM: ${error.message}`, 'error');
+                showStatus('Failed to load WASM module. Please refresh the page.', 'error');
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!wasmReady) {
+                showStatus('WASM module not ready. Please wait...', 'error');
+                return;
+            }
+
+            const enclave = enclaveInput.value.trim();
+            const repo = repoInput.value.trim();
+
+            if (!enclave || !repo) {
+                showStatus('Please fill in both fields', 'error');
+                return;
+            }
+
+            // Disable form during verification
+            verifyBtn.disabled = true;
+            showStatus('Verifying...', 'loading');
+            
+            appendLog(`Starting verification for enclave: ${enclave}, repo: ${repo}`);
+
+            try {
+                // Call the WASM verify function
+                const result = await window.verify(enclave, repo);
+                
+                appendLog('Verification completed successfully');
+                appendLog('Result:');
+                appendLog(JSON.stringify(JSON.parse(result), null, 2));
+                
+                showStatus('Verification completed successfully!', 'success');
+            } catch (error) {
+                appendLog(`Verification failed: ${error}`, 'error');
+                showStatus(`Verification failed: ${error}`, 'error');
+            } finally {
+                verifyBtn.disabled = false;
+            }
+        });
+
+        // Initialize
+        appendLog('Tinfoil Verifier Web UI initialized');
+        loadWASM();
+    </script>
+</body>
+</html>
