@@ -33,13 +33,9 @@ jobs:
           go install golang.org/x/mobile/cmd/gobind@latest
           go get -u golang.org/x/mobile/bind
 
-      - name: gomobile bind
-        run: |
-          gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
-          zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
-
       - name: Build WASM
         run: |
+          go run ./examples/rootfetch/main.go && mv trusted_root.json wasm/
           VERSION=${GITHUB_REF#refs/tags/}
           cd wasm && GOOS=js GOARCH=wasm go build \
             -trimpath \
@@ -58,6 +54,11 @@ jobs:
           mkdir -p public
           cp wasm/tinfoil-verifier-*.wasm public/
           cp wasm/tinfoil-verifier-*.wasm public/tinfoil-verifier.wasm
+
+      - name: gomobile bind
+        run: |
+          gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
+          zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
       - name: Deploy to GH pages
         uses: JamesIves/github-pages-deploy-action@v4
