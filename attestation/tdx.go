@@ -1,9 +1,11 @@
 package attestation
 
 import (
+	"crypto/x509"
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 
 	"github.com/google/go-tdx-guest/abi"
@@ -12,7 +14,23 @@ import (
 	"github.com/tinfoilsh/verifier/util"
 )
 
+//go:generate sh -xc "curl -o sgx_root_ca.pem https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.pem"
+//go:embed sgx_root_ca.pem
+var sgxRootCACertPEM []byte
+
+var intelRootCertPool *x509.CertPool
+
 type tdxGetter struct{}
+
+func init() {
+	root, _ := pem.Decode(sgxRootCACertPEM)
+	cert, err := x509.ParseCertificate(root.Bytes)
+	if err != nil {
+		panic("failed to parse Intel root certificate: " + err.Error())
+	}
+	intelRootCertPool = x509.NewCertPool()
+	intelRootCertPool.AddCert(cert)
+}
 
 func (t tdxGetter) Get(url string) (map[string][]string, []byte, error) {
 	body, headers, err := util.Get(url)
@@ -37,6 +55,7 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 
 	opts := verify.DefaultOptions()
 	opts.Getter = tdxGetter{}
+	opts.TrustedRoots = intelRootCertPool
 
 	parsedReport, err := abi.QuoteToProto(attDocBytes)
 	if err != nil {
