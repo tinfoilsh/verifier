@@ -83,8 +83,108 @@ sequenceDiagram
 
 
 ## JavaScript / WASM
-The same verifier is compiled to **WebAssembly** and published as [`verifier-js`](https://github.com/tinfoilsh/verifier-js) for use in browser or Node.js.
 
+This verifier can be compiled to WebAssembly to run directly in web browsers. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers without requiring server-side verification.
+
+When new versions are tagged, our GitHub Actions workflow automatically:
+1. Compiles the Go verification logic to WebAssembly
+2. Generates versioned WASM files with integrity guarantees
+3. Deploys them to GitHub Pages for secure, cached distribution
+4. Updates version tags so clients always load the correct module
+
+This ensures that browser-based applications can perform an audit of Tinfoil without additional infrastructure dependencies.
+
+**Usage**: This WASM verifier is integrated into [Tinfoil Chat](https://chat.tinfoil.sh) to provide transparent verification of the Tinfoil private chat. 
+
+### Quick Start
+
+Include required scripts:
+
+```html
+<script src="wasm_exec.js"></script>
+<script src="main.js"></script>
+
+<!-- Load and use the verifier -->
+<script>
+// Dynamically fetch the current version and load the corresponding WASM file
+fetch("tinfoil-verifier.tag")
+  .then(response => response.text())
+  .then(version => {
+    const go = new Go(); // Create verifier instance
+    WebAssembly.instantiateStreaming(fetch(`tinfoil-verifier-${version}.wasm`), go.importObject)
+      .then((result) => {
+        go.run(result.instance);
+
+        // Complete end-to-end verification (recommended)
+        verify("inference.example.com", "tinfoilsh/confidential-llama-qwen")
+          .then(groundTruthJSON => {
+            const groundTruth = JSON.parse(groundTruthJSON);
+            console.log("TLS Public Key:", groundTruth.tls_public_key);
+            console.log("HPKE Public Key:", groundTruth.hpke_public_key);
+            console.log("Verification successful!");
+          })
+          .catch(error => {
+            console.error("Verification failed:", error);
+          });
+      });
+  });
+</script>
+```
+
+### Complete Verification (Recommended)
+
+Use the `verify()` function for complete end-to-end verification that performs all steps atomically:
+
+```javascript
+// Complete end-to-end verification
+const groundTruthJSON = await verify("inference.example.com", "tinfoilsh/confidential-llama-qwen");
+const groundTruth = JSON.parse(groundTruthJSON);
+
+// The ground truth contains:
+// - tls_public_key: TLS certificate fingerprint
+// - hpke_public_key: HPKE public key for E2E encryption
+// - digest: GitHub release digest
+// - code_measurement: Expected code measurement from GitHub
+// - enclave_measurement: Actual runtime measurement from enclave
+// - hardware_measurement: TDX platform measurements (if applicable)
+// - code_fingerprint: Fingerprint of code measurement
+// - enclave_fingerprint: Fingerprint of enclave measurement
+
+console.log("TLS Public Key:", groundTruth.tls_public_key);
+console.log("HPKE Public Key:", groundTruth.hpke_public_key);
+console.log("Verification successful - measurements match!");
+```
+
+The `verify()` function automatically:
+1. Fetches the latest release digest from GitHub
+2. Verifies code provenance using Sigstore/Rekor
+3. Performs runtime attestation against the enclave
+4. Verifies hardware measurements (for TDX platforms)
+5. Compares code and runtime measurements using platform-specific logic
+
+If any step fails, an error is thrown with details about which step failed.
+
+### Manual Step-by-Step Verification
+
+For more control, you can perform individual verification steps:
+
+```javascript
+// 1. Verify enclave attestation
+const enclaveResult = await verifyEnclave("inference.example.com");
+console.log("Enclave measurement:", enclaveResult.measurement);
+
+// 2. Verify code matches GitHub release
+const repo = "org/repo";
+const codeResult = await verifyCode(repo, expectedDigest);
+console.log("Code measurement:", codeResult);
+
+// 3. Compare measurements manually
+if (enclaveResult.measurement === codeResult) {
+  console.log("Verification successful!");
+} else {
+  console.error("Measurements don't match!");
+}
+```
 
 ## Auditing Guide
 1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
