@@ -98,36 +98,37 @@ This ensures that browser-based applications can perform an audit of Tinfoil wit
 
 ### Quick Start
 
-Include required scripts:
+The WASM verifier is hosted at:
+```
+https://tinfoilsh.github.io/verifier/tinfoil-verifier.wasm
+```
+
+Include the Go WASM runtime and load the verifier:
 
 ```html
 <script src="wasm_exec.js"></script>
-<script src="main.js"></script>
 
-<!-- Load and use the verifier -->
 <script>
-// Dynamically fetch the current version and load the corresponding WASM file
-fetch("tinfoil-verifier.tag")
-  .then(response => response.text())
-  .then(version => {
-    const go = new Go(); // Create verifier instance
-    WebAssembly.instantiateStreaming(fetch(`tinfoil-verifier-${version}.wasm`), go.importObject)
-      .then((result) => {
-        go.run(result.instance);
+// Load the WASM verifier
+const go = new Go();
+WebAssembly.instantiateStreaming(
+  fetch("https://tinfoilsh.github.io/verifier/tinfoil-verifier.wasm"),
+  go.importObject
+).then((result) => {
+  go.run(result.instance);
 
-        // Complete end-to-end verification (recommended)
-        verify("inference.example.com", "tinfoilsh/confidential-llama-qwen")
-          .then(groundTruthJSON => {
-            const groundTruth = JSON.parse(groundTruthJSON);
-            console.log("TLS Public Key:", groundTruth.tls_public_key);
-            console.log("HPKE Public Key:", groundTruth.hpke_public_key);
-            console.log("Verification successful!");
-          })
-          .catch(error => {
-            console.error("Verification failed:", error);
-          });
-      });
-  });
+  // Complete end-to-end verification (recommended)
+  verify("inference.example.com", "tinfoilsh/confidential-llama-qwen")
+    .then(groundTruthJSON => {
+      const groundTruth = JSON.parse(groundTruthJSON);
+      console.log("TLS Public Key:", groundTruth.tls_public_key);
+      console.log("HPKE Public Key:", groundTruth.hpke_public_key);
+      console.log("Verification successful!");
+    })
+    .catch(error => {
+      console.error("Verification failed:", error);
+    });
+});
 </script>
 ```
 
