@@ -29,7 +29,7 @@ go get github.com/tinfoilsh/verifier@latest
 import "github.com/tinfoilsh/verifier/client"
 
 // 1. Create a client
-tinfoilClient, err := client.NewDefaultClient()
+tinfoilClient := client.NewSecureClient("enclave.example.com", "org/repo")
 
 // 2. Perform HTTP requests – attestation happens automatically
 resp, err := tinfoilClient.Get("/api/data", nil)
@@ -37,20 +37,20 @@ resp, err := tinfoilClient.Get("/api/data", nil)
 
 To verify manually and expose the verification state:
 ```go
-state, err := tinfoilClient.Verify() // ↳ returns *client.State with details
+groundTruth, err := tinfoilClient.Verify() // ↳ returns *client.GroundTruth with details
 ```
 
 ## Secure HTTP Client
 The `client` package wraps `net/http` and adds:
 1. **Attestation gate** – the first request verifies the enclave.
 2. **TLS pinning** – the enclave-generated certificate fingerprint is pinned for the session.
-3. **Round-tripping helpers** – convenience `Get`, `Post`, and generic `Do` methods.
+3. **Round-tripping helpers** – convenience `Get`, `Post` methods.
 
 ```go
 headers := map[string]string{"Content-Type": "application/json"}
 body    := []byte(`{"key": "value"}`)
 
-resp, err := cli.Post("/api/submit", headers, body)
+resp, err := tinfoilClient.Post("/api/submit", headers, body)
 ```
 
 For advanced usage retrieve the underlying `*http.Client`:
@@ -171,19 +171,20 @@ For more control, you can perform individual verification steps:
 ```javascript
 // 1. Verify enclave attestation
 const enclaveResult = await verifyEnclave("inference.example.com");
+console.log("TLS Public Key:", enclaveResult.tls_public_key);
+console.log("HPKE Public Key:", enclaveResult.hpke_public_key);
 console.log("Enclave measurement:", enclaveResult.measurement);
 
 // 2. Verify code matches GitHub release
-const repo = "org/repo";
-const codeResult = await verifyCode(repo, expectedDigest);
-console.log("Code measurement:", codeResult);
+const repo = "tinfoilsh/confidential-llama-qwen";
+const digest = "sha256:abc123...";
+const codeMeasurementJSON = await verifyCode(repo, digest);
+const codeMeasurement = JSON.parse(codeMeasurementJSON);
+console.log("Code measurement:", codeMeasurement);
 
-// 3. Compare measurements manually
-if (enclaveResult.measurement === codeResult) {
-  console.log("Verification successful!");
-} else {
-  console.error("Measurements don't match!");
-}
+// 3. Compare measurements manually (note: requires platform-specific comparison logic)
+const enclaveMeasurement = JSON.parse(enclaveResult.measurement);
+// Platform-specific comparison would be needed here
 ```
 
 ## Auditing Guide
