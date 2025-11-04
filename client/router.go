@@ -49,9 +49,3 @@ func (r *Router) Client() (*SecureClient, error) {
 	}
 	return NewSecureClient(router, r.repo), nil
 }
-
-// NewDefaultClient creates a new secure client using the default router
-func NewDefaultClient() (*SecureClient, error) {
-	router := NewRouter()
-	return router.Client()
-}

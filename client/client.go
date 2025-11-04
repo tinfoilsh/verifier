@@ -34,6 +34,7 @@ type SecureClient struct {
 	sigstoreClient *sigstore.Client
 }
 
+// NewSecureClient creates a new secure client with a given repo and enclave
 func NewSecureClient(enclave, repo string) *SecureClient {
 	return &SecureClient{
 		enclave: enclave,
@@ -41,6 +42,7 @@ func NewSecureClient(enclave, repo string) *SecureClient {
 	}
 }
 
+// NewPinnedSecureClient creates a new secure client with a given enclave and fixed measurements
 func NewPinnedSecureClient(enclave string, codeMeasurement *attestation.Measurement, hardwareMeasurements []*attestation.HardwareMeasurement) *SecureClient {
 	return &SecureClient{
 		enclave:              enclave,
@@ -48,6 +50,12 @@ func NewPinnedSecureClient(enclave string, codeMeasurement *attestation.Measurem
 		codeMeasurement:      codeMeasurement,
 		hardwareMeasurements: hardwareMeasurements,
 	}
+}
+
+// NewDefaultClient creates a new secure client using the default router
+func NewDefaultClient() (*SecureClient, error) {
+	router := NewRouter()
+	return router.Client()
 }
 
 // Enclave returns the enclave URL
@@ -73,7 +81,6 @@ func (s *SecureClient) GroundTruthJSON() (string, error) {
 	}
 	return string(encoded), nil
 }
-
 
 func (s *SecureClient) getSigstoreClient() (*sigstore.Client, error) {
 	if s.sigstoreClient == nil {
