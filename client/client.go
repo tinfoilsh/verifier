@@ -34,6 +34,27 @@ type SecureClient struct {
 	sigstoreClient *sigstore.Client
 }
 
+var (
+	defaultRouterRepo = "tinfoilsh/confidential-model-router"
+	defaultRouterURL  = "https://atc.tinfoil.sh/routers"
+	defaultClient     = NewSecureClient("inference.tinfoil.sh", defaultRouterRepo)
+)
+
+func fetchRouters() ([]string, error) {
+	resp, err := http.Get(defaultRouterURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var routers []string
+	if err := json.NewDecoder(resp.Body).Decode(&routers); err != nil {
+		return nil, err
+	}
+
+	return routers, nil
+}
+
 // NewSecureClient creates a new secure client with a given repo and enclave
 func NewSecureClient(enclave, repo string) *SecureClient {
 	return &SecureClient{
@@ -52,10 +73,28 @@ func NewPinnedSecureClient(enclave string, codeMeasurement *attestation.Measurem
 	}
 }
 
-// NewDefaultClient creates a new secure client using the default router
+// NewDefaultSecureClient creates a new secure client with fallback mechanism.
+// It tries to fetch routers from the router service, attempts to verify each one,
+// and falls back to inference.tinfoil.sh if all routers fail.
 func NewDefaultClient() (*SecureClient, error) {
-	router := NewRouter()
-	return router.Client()
+	routers, err := fetchRouters()
+	if err != nil {
+		// If we can't get routers, fall back to inference.tinfoil.sh immediately
+		return defaultClient, nil
+	}
+
+	// Try each router in sequence
+	for _, routerURL := range routers {
+		client := NewSecureClient(routerURL, defaultRouterRepo)
+
+		// Return first working router
+		_, err := client.Verify()
+		if err == nil {
+			return client, nil
+		}
+	}
+
+	return defaultClient, nil
 }
 
 // Enclave returns the enclave URL

@@ -56,3 +56,22 @@ func TestClientGroundTruthJSON(t *testing.T) {
 	assert.NoError(t, json.Unmarshal([]byte(encoded), &gt2))
 	assert.Equal(t, gt, &gt2)
 }
+
+func TestNewDefaultSecureClient(t *testing.T) {
+	client, err := NewDefaultClient()
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+
+	enclave := client.Enclave()
+	assert.NotEmpty(t, enclave)
+
+	_, err = client.Verify()
+	assert.NoError(t, err)
+}
+
+func TestClientFetchRouters(t *testing.T) {
+	routers, err := fetchRouters()
+	assert.NoError(t, err)
+	assert.Greater(t, len(routers), 0)
+	assert.Regexp(t, `^router\.[^/]+\.tinfoil\.sh$`, routers[0])
+}
