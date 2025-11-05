@@ -14,7 +14,7 @@ func TestVerify(t *testing.T) {
 		repo    string
 	}{
 		{"deepseek-r1-0528.inf9.tinfoil.sh", "tinfoilsh/confidential-deepseek-r1-0528"},
-		{"inference.tinfoil.sh", "tinfoilsh/confidential-inference-proxy"},
+		{"inference.tinfoil.sh", "tinfoilsh/confidential-model-router"},
 		{"llama3-3-70b.model.tinfoil.sh", "tinfoilsh/confidential-llama3-3-70b"},
 	}
 
@@ -74,4 +74,12 @@ func TestClientFetchRouters(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, len(routers), 0)
 	assert.Regexp(t, `^router\.[^/]+\.tinfoil\.sh$`, routers[0])
+}
+
+func TestClientDefaultClient(t *testing.T) {
+	enclave := defaultClient.Enclave()
+	assert.NotEmpty(t, enclave)
+
+	_, err := defaultClient.Verify()
+	assert.NoError(t, err)
 }
