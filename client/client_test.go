@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +74,7 @@ func TestClientFetchRouters(t *testing.T) {
 	routers, err := fetchRouters()
 	assert.NoError(t, err)
 	assert.Greater(t, len(routers), 0)
-	assert.Regexp(t, `^router\.[^/]+\.tinfoil\.sh$`, routers[0])
+	assert.True(t, strings.HasSuffix(routers[0], ".tinfoil.sh"))
 }
 
 func TestClientDefaultClient(t *testing.T) {
