@@ -21,6 +21,7 @@ import (
 
 var version = "dev" // set by build process
 
+//go:generate go run ../examples/rootfetch/main.go -o ../wasm/trusted_root.json
 //go:embed trusted_root.json
 var trustedRootJSON []byte
 
