@@ -3,8 +3,6 @@ package github
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 
 	"github.com/tinfoilsh/verifier/util"
@@ -32,14 +30,7 @@ func FetchLatestTag(repo string) (string, error) {
 // FetchDigest fetches the attestation digest for a given repo and tag
 func FetchDigest(repo, tag string) (string, error) {
 	url := fmt.Sprintf(`https://api-github-proxy.tinfoil.sh/%s/releases/download/%s/tinfoil.hash`, repo, tag)
-	digestResp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	if digestResp.StatusCode != 200 {
-		return "", fmt.Errorf("failed to fetch attestation digest: %s", digestResp.Status)
-	}
-	digest, err := io.ReadAll(digestResp.Body)
+	digest, _, err := util.Get(url)
 	if err != nil {
 		return "", err
 	}

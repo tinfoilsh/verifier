@@ -9,6 +9,7 @@ import (
 	"github.com/tinfoilsh/verifier/attestation"
 	"github.com/tinfoilsh/verifier/github"
 	"github.com/tinfoilsh/verifier/sigstore"
+	"github.com/tinfoilsh/verifier/util"
 )
 
 // GroundTruth represents the "known good" verified of the enclave
@@ -41,14 +42,13 @@ var (
 )
 
 func fetchRouters() ([]string, error) {
-	resp, err := http.Get(defaultRouterURL)
+	resp, _, err := util.Get(defaultRouterURL)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var routers []string
-	if err := json.NewDecoder(resp.Body).Decode(&routers); err != nil {
+	if err := json.Unmarshal(resp, &routers); err != nil {
 		return nil, err
 	}
 

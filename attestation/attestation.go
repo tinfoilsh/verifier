@@ -13,11 +13,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"slices"
 	"strings"
+
+	"github.com/tinfoilsh/verifier/util"
 )
 
 type PredicateType string
@@ -296,14 +297,13 @@ func Fetch(host string) (*Document, error) {
 	u.Scheme = "https"
 	u.Path = attestationEndpoint
 
-	resp, err := http.Get(u.String())
+	resp, _, err := util.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var doc Document
-	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+	if err := json.Unmarshal(resp, &doc); err != nil {
 		return nil, err
 	}
 	return &doc, nil
