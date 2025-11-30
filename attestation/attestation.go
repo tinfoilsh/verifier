@@ -43,6 +43,7 @@ var (
 	ErrMeasurementMismatch         = errors.New("measurement mismatch")
 	ErrRtmr1Mismatch               = errors.New("RTMR1 mismatch")
 	ErrRtmr2Mismatch               = errors.New("RTMR2 mismatch")
+	ErrRtmr3Mismatch               = errors.New("RTMR3 mismatch")
 	ErrFewRegisters                = errors.New("fewer registers than expected")
 	ErrMultiPlatformMismatch       = errors.New("multi-platform measurement mismatch")
 	ErrMultiPlatformSevSnpMismatch = errors.New("multi-platform SEV-SNP measurement mismatch")
@@ -122,6 +123,8 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 		expectedSnp := m.Registers[0]
 		expectedRtmr1 := m.Registers[1]
 		expectedRtmr2 := m.Registers[2]
+		// For now, we expect all RTMR3s to be zeros
+		expectedRtmr3 := "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 		switch other.Type {
 		case TdxGuestV1, TdxGuestV2:
@@ -131,6 +134,7 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 
 			actualRtmr1 := other.Registers[2] // 0 is MRTD, 1 is RTMR0
 			actualRtmr2 := other.Registers[3]
+			actualRtmr3 := other.Registers[4]
 
 			out.WriteString(fmt.Sprintf("[i] SNP   %s\n", expectedSnp))
 
@@ -141,6 +145,10 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 			if expectedRtmr2 != actualRtmr2 {
 				out.WriteString(fmt.Sprintf("[-] RTMR2 %s != %s\n", expectedRtmr2, actualRtmr2))
 				err = errors.Join(err, ErrRtmr2Mismatch)
+			}
+			if expectedRtmr3 != actualRtmr3 {
+				out.WriteString(fmt.Sprintf("[-] RTMR3 %s != %s\n", expectedRtmr3, actualRtmr3))
+				err = errors.Join(err, ErrRtmr3Mismatch)
 			}
 
 			if err == nil {
