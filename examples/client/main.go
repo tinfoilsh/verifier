@@ -8,10 +8,7 @@ import (
 
 func main() {
 	// Create a client for a specific enclave and code repository
-	// tinfoilClient := client.NewSecureClient("deepseek-r1-0528.inf9.tinfoil.sh", "tinfoilsh/confidential-deepseek-r1-0528")
-	// tinfoilClient := client.NewSecureClient("deepseek-v31-terminus.inf7.tinfoil.sh", "tinfoilsh/confidential-deepseek-v31-terminus")
-	tinfoilClient := client.NewSecureClient("llama-qwen.inf8.tinfoil.sh", "tinfoilsh/confidential-llama-qwen")
-	// tinfoilClient := client.NewSecureClient("gpt-oss-120b.inf5.tinfoil.sh", "tinfoilsh/confidential-gpt-oss-120b")
+	tinfoilClient := client.NewSecureClient("tinfoil-enclave.example.com", "exampleorg/repo")
 
 	// Make HTTP requests - verification happens automatically
 	resp, err := tinfoilClient.Get("/.well-known/tinfoil-attestation", nil)

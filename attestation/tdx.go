@@ -99,6 +99,7 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 	expectedTdAttributes := []byte{0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00}
 
 	// XFam specified processor features allowed inside of the TDs
+	// Enable FP, SSE, AVX, AVX512, PK, and AMX
 	expectedXfam := []byte{0xe7, 0x02, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00}
 
 	valOpts := &validate.Options{
