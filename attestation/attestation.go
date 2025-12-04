@@ -128,7 +128,7 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 
 		switch other.Type {
 		case TdxGuestV1, TdxGuestV2:
-			if len(other.Registers) < 4 {
+			if len(other.Registers) < 5 {
 				return "MP-TDX unable to compare, too few TDX registers", ErrFewRegisters
 			}
 
