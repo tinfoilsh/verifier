@@ -19,6 +19,7 @@ jobs:
       - run: |
           go env -w GOTOOLCHAIN=go1.25.0+auto # hack for covdata
           go mod download
+          go run ./rootfetch/main.go -o client/trusted_root.json
           go build -v ./...
           go install gotest.tools/gotestsum@latest
 
