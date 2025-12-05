@@ -66,7 +66,7 @@ func TestBasicChatCompletion(t *testing.T) {
 
 	// Prepare chat completion request
 	request := ChatCompletionRequest{
-		Model: "llama3-3-70b",
+		Model: "gpt-oss-120b-free",
 		Messages: []Message{
 			{
 				Role:    "user",

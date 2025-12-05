@@ -50,19 +50,20 @@ func TestVerifyAttestation(t *testing.T) {
 
 	// Check TDX equality
 	tdxMeasurement := &attestation.Measurement{
-		Type: attestation.TdxGuestV1,
+		Type: attestation.TdxGuestV2,
 		Registers: []string{
 			"mrtd",
-			"rtrm0",
+			"rtmr0",
 			"10a05f3fba7d66babcc8a8143451443a564963ced77c7fa126f004857753f87c318720e29e9ed2f46c8753b44b01004d", // RTMR1
 			"fc744ecc4550ec0ea6c25deaa777bd2ed6e5feda35ac1e88a2c2b6e62584a8ad47a93526638de3b97fe45cd67cb5339f", // RTMR2
+			"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // RTMR3
 		},
 	}
 	assert.NoError(t, measurement.Equals(tdxMeasurement))
 
 	// Check SEV-SNP equality
 	sevSNPMeasurement := &attestation.Measurement{
-		Type: attestation.SevGuestV1,
+		Type: attestation.SevGuestV2,
 		Registers: []string{
 			"442df00d945bdd2849e6df4eb28c757e9e94428787268b452eacb3f86bbc38528d6712e2c41b6953f1a96d2493d5f9b6", // SEV-SNP
 		},

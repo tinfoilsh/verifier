@@ -142,21 +142,6 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 	return registers, report.TdQuoteBody.ReportData, nil
 }
 
-func verifyTdxAttestationV1(attestationDoc string) (*Verification, error) {
-	registers, reportData, err := verifyTdxReport(attestationDoc, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Verification{
-		Measurement: &Measurement{
-			Type:      TdxGuestV1,
-			Registers: registers,
-		},
-		TLSPublicKeyFP: string(reportData),
-	}, nil
-}
-
 func verifyTdxAttestationV2(attestationDoc string) (*Verification, error) {
 	registers, reportData, err := verifyTdxReport(attestationDoc, true)
 	if err != nil {

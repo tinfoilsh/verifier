@@ -170,7 +170,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 
 	// Fetch hardware platform measurements if required
 	var matchedHwMeasurement *attestation.HardwareMeasurement
-	if enclaveAttestation.Format == attestation.TdxGuestV1 || enclaveAttestation.Format == attestation.TdxGuestV2 {
+	if enclaveAttestation.Format == attestation.TdxGuestV2 {
 		var hwMeasurements = s.hardwareMeasurements
 		if len(s.hardwareMeasurements) == 0 {
 			sigstoreClient, err := s.getSigstoreClient()

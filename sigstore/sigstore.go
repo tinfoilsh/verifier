@@ -125,11 +125,6 @@ func (c *Client) VerifyAttestation(
 
 	measurementType := attestation.PredicateType(result.Statement.PredicateType)
 	switch measurementType {
-	case attestation.SevGuestV1:
-		return &attestation.Measurement{
-			Type:      measurementType,
-			Registers: []string{predicateFields["measurement"].GetStringValue()},
-		}, nil
 	case attestation.SnpTdxMultiPlatformV1:
 		tdxMeasurementField, ok := predicateFields["tdx_measurement"]
 		if !ok {

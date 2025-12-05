@@ -21,13 +21,11 @@ import (
 	"github.com/tinfoilsh/verifier/util"
 )
 
+const RTMR3_ZERO = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
 type PredicateType string
 
 const (
-	// CC guest v1 types include only the TLS key fingerprint in the body
-	SevGuestV1 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v1"
-	TdxGuestV1 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v1"
-
 	// CC guest v2 types include the TLS key fingerprint and optionally HPKE public key
 	SevGuestV2 PredicateType = "https://tinfoil.sh/predicate/sev-snp-guest/v2"
 	TdxGuestV2 PredicateType = "https://tinfoil.sh/predicate/tdx-guest/v2"
@@ -61,19 +59,19 @@ func Fingerprint(m *Measurement, hw *HardwareMeasurement, targetType PredicateTy
 	switch m.Type {
 	case SnpTdxMultiPlatformV1: // Source
 		switch targetType {
-		case SevGuestV1, SevGuestV2:
+		case SevGuestV2:
 			registers = []string{m.Registers[0]}
-		case TdxGuestV1, TdxGuestV2:
+		case TdxGuestV2:
 			if hw == nil {
 				return "", fmt.Errorf("hardware measurement required for TDX guest types")
 			}
-			registers = []string{hw.MRTD, hw.RTMR0, m.Registers[1], m.Registers[2]}
+			registers = []string{hw.MRTD, hw.RTMR0, m.Registers[1], m.Registers[2], RTMR3_ZERO}
 		default:
 			return "", fmt.Errorf("unsupported target type %s", targetType)
 		}
-	case TdxGuestV1, TdxGuestV2: // Runtime
-		registers = []string{m.Registers[0], m.Registers[1], m.Registers[2], m.Registers[3]}
-	case SevGuestV1, SevGuestV2:
+	case TdxGuestV2: // Runtime
+		registers = []string{m.Registers[0], m.Registers[1], m.Registers[2], m.Registers[3], m.Registers[4]}
+	case SevGuestV2:
 		registers = []string{m.Registers[0]}
 	default:
 		return "", fmt.Errorf("unsupported measurement type %s", m.Type)
@@ -124,10 +122,10 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 		expectedRtmr1 := m.Registers[1]
 		expectedRtmr2 := m.Registers[2]
 		// For now, we expect all RTMR3s to be zeros
-		expectedRtmr3 := "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+		expectedRtmr3 := RTMR3_ZERO
 
 		switch other.Type {
-		case TdxGuestV1, TdxGuestV2:
+		case TdxGuestV2:
 			if len(other.Registers) < 5 {
 				return "MP-TDX unable to compare, too few TDX registers", ErrFewRegisters
 			}
@@ -152,11 +150,11 @@ func (m *Measurement) EqualsDisplay(other *Measurement) (string, error) {
 			}
 
 			if err == nil {
-				out.WriteString(fmt.Sprintf("[+] RTMR1 %s\n[+] RTMR2 %s\n", expectedRtmr1, expectedRtmr2))
+				out.WriteString(fmt.Sprintf("[+] RTMR1 %s\n[+] RTMR2 %s\n[+] RTMR3 %s\n", expectedRtmr1, expectedRtmr2, expectedRtmr3))
 			}
 
 			return strings.TrimRight(out.String(), "\n"), err
-		case SevGuestV1, SevGuestV2:
+		case SevGuestV2:
 			actualSnp := other.Registers[0]
 
 			if expectedSnp != actualSnp {
@@ -197,9 +195,9 @@ func (m *Measurement) String() string {
 	switch m.Type {
 	case SnpTdxMultiPlatformV1:
 		platform = []string{"SNP", "RTMR1", "RTMR2"}
-	case SevGuestV1, SevGuestV2:
+	case SevGuestV2:
 		platform = []string{"SNP"}
-	case TdxGuestV1, TdxGuestV2:
+	case TdxGuestV2:
 		platform = []string{"MRTD", "RTMR0", "RTMR1", "RTMR2", "RTMR3"}
 	}
 
@@ -249,12 +247,8 @@ func (d *Document) Hash() string {
 // Verify checks the attestation document against its trust root and returns the inner measurements
 func (d *Document) Verify() (*Verification, error) {
 	switch d.Format {
-	case SevGuestV1:
-		return verifySevAttestationV1(d.Body)
 	case SevGuestV2:
 		return verifySevAttestationV2(d.Body)
-	case TdxGuestV1:
-		return verifyTdxAttestationV1(d.Body)
 	case TdxGuestV2:
 		return verifyTdxAttestationV2(d.Body)
 	default:

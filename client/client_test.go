@@ -16,7 +16,7 @@ func TestVerify(t *testing.T) {
 	}{
 		{"deepseek-r1-0528.inf9.tinfoil.sh", "tinfoilsh/confidential-deepseek-r1-0528"},
 		{"inference.tinfoil.sh", "tinfoilsh/confidential-model-router"},
-		{"llama3-3-70b.model.tinfoil.sh", "tinfoilsh/confidential-llama3-3-70b"},
+		{"gpt-oss-120b-free.inf5.tinfoil.sh", "tinfoilsh/confidential-gpt-oss-120b-free"},
 	}
 
 	for _, test := range tests {
@@ -34,7 +34,7 @@ func TestClientGroundTruthJSON(t *testing.T) {
 		Registers: []string{"a", "b"},
 	}
 	enclaveMeasurement := &attestation.Measurement{
-		Type:      attestation.TdxGuestV1,
+		Type:      attestation.TdxGuestV2,
 		Registers: []string{"a"},
 	}
 
