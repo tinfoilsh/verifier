@@ -191,43 +191,15 @@ The `verify()` function automatically:
 
 If any step fails, an error is thrown with details about which step failed.
 
-### Manual Step-by-Step Verification
 
-For more control, you can perform individual verification steps:
-
-```javascript
-try {
-  // 1. Verify enclave attestation
-  const enclaveResult = await verifyEnclave("inference.example.com");
-  console.log("TLS Cert Fingerprint:", enclaveResult.tls_public_key);
-  console.log("HPKE Public Key:", enclaveResult.hpke_public_key);
-
-  // Note: measurement is a JSON string that needs parsing
-  const enclaveMeasurement = JSON.parse(enclaveResult.measurement);
-  console.log("Enclave measurement:", enclaveMeasurement);
-
-  // 2. Verify code matches GitHub release
-  const repo = "tinfoilsh/confidential-llama-qwen";
-  const digest = "sha256:abc123...";
-  const codeMeasurementJSON = await verifyCode(repo, digest);
-  const codeMeasurement = JSON.parse(codeMeasurementJSON);
-  console.log("Code measurement:", codeMeasurement);
-
-  // 3. For automatic comparison with platform-specific logic, use verify() instead
-  // Manual comparison requires understanding SEV-SNP vs TDX measurement formats
-} catch (error) {
-  console.error("Verification failed:", error);
-}
-```
-
-**Recommended**: Use the complete `verify()` function instead of manual steps, as it handles platform-specific measurement comparison automatically.
-
-## Auditing Guide
+## Auditing the Verification Code 
 1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
-2. **Attestation logic** – start with [`/attestation/attestation.go`](attestation/attestation.go) and platform files:
-   - [`/attestation/sev.go`](attestation/sev.go)
-   - [`/attestation/tdx.go`](attestation/tdx.go)
-3. **Measurement matching** – inspect [`/sigstore/sigstore.go`](sigstore/sigstore.go)
+2. **Attestation verification** – platform-specific attestation logic:
+   - [`/attestation/sev.go`](attestation/sev.go) – AMD SEV-SNP attestation
+   - [`/attestation/tdx.go`](attestation/tdx.go) – Intel TDX attestation
+3. **Measurement comparison** – see [`Measurement.Equals()`](attestation/attestation.go#L186) in [`/attestation/attestation.go`](attestation/attestation.go)
+4. **Code provenance verification** – Sigstore/Rekor integration in [`/sigstore/sigstore.go`](sigstore/sigstore.go)
+5. **End-to-end verification flow** – [`client.Verify()`](client/client.go#L136) in [`/client/client.go`](client/client.go)
 
 ## Reporting Vulnerabilities
 
