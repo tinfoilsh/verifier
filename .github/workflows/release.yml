@@ -35,7 +35,7 @@ jobs:
 
       - name: Build WASM
         run: |
-          go run ./examples/rootfetch/main.go && mv trusted_root.json wasm/
+          go run ./rootfetch/main.go && mv trusted_root.json wasm/
           VERSION=${GITHUB_REF#refs/tags/}
           cd wasm && GOOS=js GOARCH=wasm go build \
             -trimpath \
@@ -50,7 +50,7 @@ jobs:
 
       - name: gomobile bind
         run: |
-          go run ./examples/rootfetch/main.go -o client/trusted_root.json
+          go run ./rootfetch/main.go -o client/trusted_root.json
           gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
           zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
