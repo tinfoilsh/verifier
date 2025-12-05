@@ -142,7 +142,7 @@ func verify() js.Func {
 				enclaveHostname := args[0].String()
 				repo := args[1].String()
 
-				groundTruthJSON, err := client.VerifyJSON(trustedRootJSON, enclaveHostname, repo)
+				groundTruthJSON, err := client.VerifyJSON(enclaveHostname, repo, trustedRootJSON)
 				if err != nil {
 					reject.Invoke(err.Error())
 					return

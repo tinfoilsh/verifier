@@ -50,6 +50,7 @@ jobs:
 
       - name: gomobile bind
         run: |
+          go run ./examples/rootfetch/main.go -o client/trusted_root.json
           gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v "/examples/" | xargs)
           zip -r TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 

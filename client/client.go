@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +12,9 @@ import (
 	"github.com/tinfoilsh/verifier/sigstore"
 	"github.com/tinfoilsh/verifier/util"
 )
+
+//go:embed trusted_root.json
+var embeddedTrustedRoot []byte
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
@@ -277,8 +281,22 @@ func (s *SecureClient) Get(url string, headers map[string]string) (*Response, er
 }
 
 // VerifyJSON verifies an enclave against a repo and returns the verification data as a JSON string
-func VerifyJSON(sigstoreTrustedRootJSON []byte, enclave, repo string) (string, error) {
-	sigstoreClient, err := sigstore.NewClientFromJSON(sigstoreTrustedRootJSON)
+func VerifyJSON(enclave, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	var trustedRootJSON []byte
+	var err error
+
+	if len(sigstoreTrustedRootJSON) > 0 {
+		trustedRootJSON = sigstoreTrustedRootJSON
+	} else if len(embeddedTrustedRoot) > 0 {
+		trustedRootJSON = embeddedTrustedRoot
+	} else {
+		trustedRootJSON, err = sigstore.FetchTrustRoot()
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch trusted root: %v", err)
+		}
+	}
+
+	sigstoreClient, err := sigstore.NewClientFromJSON(trustedRootJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to create sigstore client: %v", err)
 	}
