@@ -138,23 +138,6 @@ func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, 
 	return parsedReport, nil
 }
 
-func verifySevAttestationV1(attestationDoc string) (*Verification, error) {
-	report, err := verifySevReport(attestationDoc, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Verification{
-		Measurement: &Measurement{
-			Type: SevGuestV1,
-			Registers: []string{
-				hex.EncodeToString(report.Measurement),
-			},
-		},
-		TLSPublicKeyFP: string(report.ReportData),
-	}, nil
-}
-
 func verifySevAttestationV2(attestationDoc string) (*Verification, error) {
 	report, err := verifySevReport(attestationDoc, true)
 	if err != nil {

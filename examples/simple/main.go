@@ -106,7 +106,7 @@ func main() {
 
 	log.With("runtime", verification.Measurement, "source", codeMeasurements).Info("Measurements")
 
-	if enclaveAttestation.Format == attestation.TdxGuestV1 || enclaveAttestation.Format == attestation.TdxGuestV2 {
+	if enclaveAttestation.Format == attestation.TdxGuestV2 {
 		log.Info("Fetching latest hardware measurements")
 		hwMeasurements, err := sigstoreClient.LatestHardwareMeasurements()
 		if err != nil {
