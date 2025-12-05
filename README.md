@@ -8,11 +8,13 @@ Portable remote-attestation verifier & secure HTTP client for enclave-backed ser
 Tinfoil Verifier is a Go library that verifies the integrity of remote enclaves (AMD SEV-SNP & Intel TDX) and binds that verification to TLS connections. It also ships a drop-in secure `http.Client` that performs attestation transparently.
 
 ## Features
-- 🔒 **Hardware-rooted remote attestation** for SEV-SNP & TDX  
-- 📦 **Self-contained** with no external attestation service
-- 🕸 **Secure HTTP client** with automatic certificate pinning  
-- 🛡 **Sigstore integration** for reference measurements  
-- 🧑‍💻 **WASM build** for browser/nodejs  
+- **Hardware-rooted remote attestation** for AMD SEV-SNP & Intel TDX
+- **Self-contained** with no external attestation service
+- **Secure HTTP client** with automatic TLS certificate pinning
+- **Sigstore integration** for code provenance verification
+- **Attested HPKE public keys** for use with [EHBP](https://docs.tinfoil.sh/resources/ehbp) clients
+- **WASM build** for browser/Node.js environments
+- **Swift bindings** via gomobile for iOS/macOS integration  
 
 ## Installation
 ```bash
@@ -33,11 +35,21 @@ tinfoilClient := client.NewSecureClient("enclave.example.com", "org/repo")
 
 // 2. Perform HTTP requests – attestation happens automatically
 resp, err := tinfoilClient.Get("/api/data", nil)
+if err != nil {
+    log.Fatal(err)
+}
+log.Printf("Status: %s, Body: %s", resp.Status, resp.Body)
 ```
 
 To verify manually and expose the verification state:
 ```go
-groundTruth, err := tinfoilClient.Verify() // ↳ returns *client.GroundTruth with details
+groundTruth, err := tinfoilClient.Verify()
+if err != nil {
+    log.Fatal(err)
+}
+// Access verified measurements and keys
+log.Printf("TLS Cert Fingerprint: %s", groundTruth.TLSPublicKey)
+log.Printf("HPKE Public Key: %s", groundTruth.HPKEPublicKey)
 ```
 
 ## Secure HTTP Client
@@ -82,9 +94,26 @@ sequenceDiagram
 ```
 
 
-## JavaScript / WASM
+## JavaScript / TypeScript / WASM
 
-This verifier can be compiled to WebAssembly to run directly in web browsers. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers without requiring server-side verification.
+### JavaScript / TypeScript SDK
+
+For production JavaScript/TypeScript applications, use the [tinfoil-node](https://github.com/tinfoilsh/tinfoil-node) package, which provides:
+- OpenAI-compatible API with built-in verification
+- WASM-based verifier integration (uses this repo's WASM build)
+- EHBP (Encrypted HTTP Body Protocol) for end-to-end encryption
+- Support for browsers, Node.js 20+, Deno, Bun, and Cloudflare Workers
+- Comprehensive verification reporting with step-by-step diagnostics
+
+```bash
+npm install @tinfoilsh/tinfoil-node
+```
+
+See the [tinfoil-node documentation](https://github.com/tinfoilsh/tinfoil-node) for usage examples.
+
+### Direct WASM Usage
+
+For advanced custom integrations, you can use the WASM verifier directly. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers without requiring server-side verification.
 
 When new versions are tagged, our GitHub Actions workflow automatically:
 1. Compiles the Go verification logic to WebAssembly
@@ -92,9 +121,6 @@ When new versions are tagged, our GitHub Actions workflow automatically:
 3. Deploys them to GitHub Pages for secure, cached distribution
 4. Updates version tags so clients always load the correct module
 
-This ensures that browser-based applications can perform an audit of Tinfoil without additional infrastructure dependencies.
-
-**Usage**: This WASM verifier is integrated into [Tinfoil Chat](https://chat.tinfoil.sh) to provide transparent verification of the Tinfoil private chat. 
 
 ### Quick Start
 
@@ -121,7 +147,7 @@ WebAssembly.instantiateStreaming(
   verify("inference.example.com", "tinfoilsh/confidential-llama-qwen")
     .then(groundTruthJSON => {
       const groundTruth = JSON.parse(groundTruthJSON);
-      console.log("TLS Public Key:", groundTruth.tls_public_key);
+      console.log("TLS Cert Fingerprint:", groundTruth.tls_public_key);
       console.log("HPKE Public Key:", groundTruth.hpke_public_key);
       console.log("Verification successful!");
     })
@@ -142,8 +168,8 @@ const groundTruthJSON = await verify("inference.example.com", "tinfoilsh/confide
 const groundTruth = JSON.parse(groundTruthJSON);
 
 // The ground truth contains:
-// - tls_public_key: TLS certificate fingerprint
-// - hpke_public_key: HPKE public key for E2E encryption
+// - tls_public_key: TLS certificate public key fingerprint (for pinning)
+// - hpke_public_key: HPKE public key (for EHBP encryption)
 // - digest: GitHub release digest
 // - code_measurement: Expected code measurement from GitHub
 // - enclave_measurement: Actual runtime measurement from enclave
@@ -151,7 +177,7 @@ const groundTruth = JSON.parse(groundTruthJSON);
 // - code_fingerprint: Fingerprint of code measurement
 // - enclave_fingerprint: Fingerprint of enclave measurement
 
-console.log("TLS Public Key:", groundTruth.tls_public_key);
+console.log("TLS Cert Fingerprint:", groundTruth.tls_public_key);
 console.log("HPKE Public Key:", groundTruth.hpke_public_key);
 console.log("Verification successful - measurements match!");
 ```
@@ -170,23 +196,31 @@ If any step fails, an error is thrown with details about which step failed.
 For more control, you can perform individual verification steps:
 
 ```javascript
-// 1. Verify enclave attestation
-const enclaveResult = await verifyEnclave("inference.example.com");
-console.log("TLS Public Key:", enclaveResult.tls_public_key);
-console.log("HPKE Public Key:", enclaveResult.hpke_public_key);
-console.log("Enclave measurement:", enclaveResult.measurement);
+try {
+  // 1. Verify enclave attestation
+  const enclaveResult = await verifyEnclave("inference.example.com");
+  console.log("TLS Cert Fingerprint:", enclaveResult.tls_public_key);
+  console.log("HPKE Public Key:", enclaveResult.hpke_public_key);
 
-// 2. Verify code matches GitHub release
-const repo = "tinfoilsh/confidential-llama-qwen";
-const digest = "sha256:abc123...";
-const codeMeasurementJSON = await verifyCode(repo, digest);
-const codeMeasurement = JSON.parse(codeMeasurementJSON);
-console.log("Code measurement:", codeMeasurement);
+  // Note: measurement is a JSON string that needs parsing
+  const enclaveMeasurement = JSON.parse(enclaveResult.measurement);
+  console.log("Enclave measurement:", enclaveMeasurement);
 
-// 3. Compare measurements manually (note: requires platform-specific comparison logic)
-const enclaveMeasurement = JSON.parse(enclaveResult.measurement);
-// Platform-specific comparison would be needed here
+  // 2. Verify code matches GitHub release
+  const repo = "tinfoilsh/confidential-llama-qwen";
+  const digest = "sha256:abc123...";
+  const codeMeasurementJSON = await verifyCode(repo, digest);
+  const codeMeasurement = JSON.parse(codeMeasurementJSON);
+  console.log("Code measurement:", codeMeasurement);
+
+  // 3. For automatic comparison with platform-specific logic, use verify() instead
+  // Manual comparison requires understanding SEV-SNP vs TDX measurement formats
+} catch (error) {
+  console.error("Verification failed:", error);
+}
 ```
+
+**Recommended**: Use the complete `verify()` function instead of manual steps, as it handles platform-specific measurement comparison automatically.
 
 ## Auditing Guide
 1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
@@ -197,6 +231,10 @@ const enclaveMeasurement = JSON.parse(enclaveResult.measurement);
 
 ## Reporting Vulnerabilities
 
-Please report security vulnerabilities by emailing [contact@tinfoil.sh](mailto:contact@tinfoil.sh)
+Please report security vulnerabilities by either:
 
-We aim to respond to security reports within 24 hours and will keep you updated on our progress.
+- Emailing [security@tinfoil.sh](mailto:security@tinfoil.sh)
+
+- Opening an issue on GitHub on this repository
+
+We aim to respond to (legitimate) security reports within 24 hours.
