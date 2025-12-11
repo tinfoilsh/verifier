@@ -9,22 +9,24 @@ import (
 )
 
 func main() {
-	// Create a client for a specific enclave and code repository
-	tinfoilClient := client.NewSecureClient("tinfoil-enclave.example.com", "exampleorg/repo")
+	tinfoilClient, err := client.NewDefaultClient()
+	if err != nil {
+		log.Fatalf("failed to create client: %v", err)
+	}
 
-	// Make HTTP requests - verification happens automatically
-	resp, err := tinfoilClient.Get("/.well-known/tinfoil-attestation", nil)
+	log.Printf("Connected to enclave: %s", tinfoilClient.Enclave())
+
+	body := []byte(`{"model":"gpt-oss-120b-free","messages":[{"role":"user","content":"What is 2+2?"}]}`)
+
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": "Bearer tinfoil",
+	}
+
+	resp, err := tinfoilClient.Post("/v1/chat/completions", headers, body)
 	if err != nil {
 		log.Fatalf("request failed: %v", err)
 	}
-	log.Printf("Response body: %s", resp.Body)
 
-	// POST with headers and body
-	headers := map[string]string{"Content-Type": "application/json"}
-	body := []byte(`{"key": "value"}`)
-	resp, err = tinfoilClient.Post("/api/submit", headers, body)
-	if err != nil {
-		log.Fatalf("request failed: %v", err)
-	}
-	log.Printf("Response body: %s", resp.Body)
+	log.Printf("Response: %s", string(resp.Body))
 }
