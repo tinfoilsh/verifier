@@ -1,5 +1,4 @@
 .idea/
-verifier
 cover.out
 tuf-repo-cdn.sigstore.dev.json
 TinfoilVerifier.xcframework
