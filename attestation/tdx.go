@@ -3,11 +3,13 @@ package attestation
 import (
 	"bytes"
 	"crypto/x509"
-	_ "embed"
+	"embed"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/google/go-tdx-guest/abi"
@@ -43,18 +45,16 @@ var pckCRLPlatform []byte
 //go:embed collateral/pck_crl_platform_chain.txt
 var pckCRLPlatformChain []byte
 
-//go:embed collateral/tcb_info_90c06f000000.json
-var tcbInfo90c06f000000 []byte
+//go:embed collateral/tcb_info_*.json
+//go:embed collateral/tcb_info_*_chain.txt
+var tcbInfoFS embed.FS
 
-//go:embed collateral/tcb_info_90c06f000000_chain.txt
-var tcbInfo90c06f000000Chain []byte
-
-var tcbInfoCache = map[string]struct {
+var tcbInfoCache map[string]struct {
 	body  []byte
 	chain []byte
-}{
-	"90c06f000000": {tcbInfo90c06f000000, tcbInfo90c06f000000Chain},
 }
+
+var fmspcPattern = regexp.MustCompile(`^collateral/tcb_info_([a-f0-9]+)\.json$`)
 
 const (
 	// MinimumQeSvn is the minimum Quote Enclave security version.
@@ -68,6 +68,12 @@ const (
 	// has not yet been updated. Set to 0 until TDX platforms are updated.
 	// TODO: Increase to 13 once all TDX platforms are updated.
 	MinimumPceSvn = 0
+
+	// MinimumTcbEvaluationDataNumber is the minimum TCB evaluation data number
+	// required for embedded collateral. This ensures outdated collateral cannot
+	// be accidentally embedded. The build will fail if collateral is older than
+	// this value. See Intel's TCB Recovery best practices.
+	MinimumTcbEvaluationDataNumber = 18
 )
 
 // IntelQeVendorID is Intel's QE Vendor ID (939a7233-f79c-4ca9-940a-0db3957f0607)
@@ -88,6 +94,80 @@ func init() {
 	}
 	intelRootCertPool = x509.NewCertPool()
 	intelRootCertPool.AddCert(cert)
+
+	loadTcbInfoCache()
+	validateEmbeddedCollateral()
+}
+
+func loadTcbInfoCache() {
+	tcbInfoCache = make(map[string]struct {
+		body  []byte
+		chain []byte
+	})
+
+	entries, err := tcbInfoFS.ReadDir("collateral")
+	if err != nil {
+		panic("failed to read embedded collateral directory: " + err.Error())
+	}
+
+	for _, entry := range entries {
+		path := "collateral/" + entry.Name()
+		matches := fmspcPattern.FindStringSubmatch(path)
+		if matches == nil {
+			continue
+		}
+		fmspc := matches[1]
+
+		body, err := tcbInfoFS.ReadFile(path)
+		if err != nil {
+			panic("failed to read embedded TCB Info for FMSPC " + fmspc + ": " + err.Error())
+		}
+
+		chainPath := fmt.Sprintf("collateral/tcb_info_%s_chain.txt", fmspc)
+		chain, err := tcbInfoFS.ReadFile(chainPath)
+		if err != nil {
+			panic("failed to read embedded TCB Info chain for FMSPC " + fmspc + ": " + err.Error())
+		}
+
+		tcbInfoCache[fmspc] = struct {
+			body  []byte
+			chain []byte
+		}{body, chain}
+	}
+
+	if len(tcbInfoCache) == 0 {
+		panic("no TCB Info collateral found in embedded filesystem")
+	}
+}
+
+func validateEmbeddedCollateral() {
+	var qeIdentity struct {
+		EnclaveIdentity struct {
+			TcbEvaluationDataNumber int `json:"tcbEvaluationDataNumber"`
+		} `json:"enclaveIdentity"`
+	}
+	if err := json.Unmarshal(qeIdentityJSON, &qeIdentity); err != nil {
+		panic("failed to parse embedded QE Identity: " + err.Error())
+	}
+	if qeIdentity.EnclaveIdentity.TcbEvaluationDataNumber < MinimumTcbEvaluationDataNumber {
+		panic(fmt.Sprintf("embedded QE Identity tcbEvaluationDataNumber %d is below minimum %d",
+			qeIdentity.EnclaveIdentity.TcbEvaluationDataNumber, MinimumTcbEvaluationDataNumber))
+	}
+
+	for fmspc, cached := range tcbInfoCache {
+		var tcbInfo struct {
+			TcbInfo struct {
+				TcbEvaluationDataNumber int `json:"tcbEvaluationDataNumber"`
+			} `json:"tcbInfo"`
+		}
+		if err := json.Unmarshal(cached.body, &tcbInfo); err != nil {
+			panic("failed to parse embedded TCB Info for FMSPC " + fmspc + ": " + err.Error())
+		}
+		if tcbInfo.TcbInfo.TcbEvaluationDataNumber < MinimumTcbEvaluationDataNumber {
+			panic(fmt.Sprintf("embedded TCB Info for FMSPC %s tcbEvaluationDataNumber %d is below minimum %d",
+				fmspc, tcbInfo.TcbInfo.TcbEvaluationDataNumber, MinimumTcbEvaluationDataNumber))
+		}
+	}
 }
 
 func (t tdxGetter) Get(requestURL string) (map[string][]string, []byte, error) {
@@ -134,7 +214,7 @@ func extractFMSPCFromURL(url string) string {
 	if ampIdx := strings.Index(fmspc, "&"); ampIdx != -1 {
 		fmspc = fmspc[:ampIdx]
 	}
-	return fmspc
+	return strings.ToLower(fmspc)
 }
 
 func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte, error) {
