@@ -8,17 +8,68 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-tdx-guest/abi"
 	pb "github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
-	"github.com/tinfoilsh/verifier/util"
 )
 
 //go:generate sh -xc "curl -o sgx_root_ca.pem https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.pem"
 //go:embed sgx_root_ca.pem
 var sgxRootCACertPEM []byte
+
+//go:generate sh -xc "cd collateral && ./fetch.sh"
+
+//go:embed collateral/qe_identity.json
+var qeIdentityJSON []byte
+
+//go:embed collateral/qe_identity_chain.txt
+var qeIdentityChain []byte
+
+//go:embed collateral/root_ca.crl
+var rootCACRL []byte
+
+//go:embed collateral/pck_crl_processor.crl
+var pckCRLProcessor []byte
+
+//go:embed collateral/pck_crl_processor_chain.txt
+var pckCRLProcessorChain []byte
+
+//go:embed collateral/pck_crl_platform.crl
+var pckCRLPlatform []byte
+
+//go:embed collateral/pck_crl_platform_chain.txt
+var pckCRLPlatformChain []byte
+
+//go:embed collateral/tcb_info_90c06f000000.json
+var tcbInfo90c06f000000 []byte
+
+//go:embed collateral/tcb_info_90c06f000000_chain.txt
+var tcbInfo90c06f000000Chain []byte
+
+var tcbInfoCache = map[string]struct {
+	body  []byte
+	chain []byte
+}{
+	"90c06f000000": {tcbInfo90c06f000000, tcbInfo90c06f000000Chain},
+}
+
+const (
+	// MinimumQeSvn is the minimum Quote Enclave security version.
+	// Based on current Intel QE Identity tcbLevels with "UpToDate" status.
+	MinimumQeSvn = 4
+
+	// MinimumPceSvn is the minimum Platform Certification Enclave security version.
+	MinimumPceSvn = 13
+)
+
+// IntelQeVendorID is Intel's QE Vendor ID (939a7233-f79c-4ca9-940a-0db3957f0607)
+var IntelQeVendorID = []byte{
+	0x93, 0x9a, 0x72, 0x33, 0xf7, 0x9c, 0x4c, 0xa9,
+	0x94, 0x0a, 0x0d, 0xb3, 0x95, 0x7f, 0x06, 0x07,
+}
 
 var intelRootCertPool *x509.CertPool
 
@@ -34,12 +85,51 @@ func init() {
 	intelRootCertPool.AddCert(cert)
 }
 
-func (t tdxGetter) Get(url string) (map[string][]string, []byte, error) {
-	body, headers, err := util.Get(url)
-	if err != nil {
-		return nil, nil, err
+func (t tdxGetter) Get(requestURL string) (map[string][]string, []byte, error) {
+	headers := make(map[string][]string)
+
+	if strings.Contains(requestURL, "/qe/identity") {
+		headers["Sgx-Enclave-Identity-Issuer-Chain"] = []string{strings.TrimSpace(string(qeIdentityChain))}
+		return headers, qeIdentityJSON, nil
 	}
-	return headers, body, nil
+
+	if strings.Contains(requestURL, "/rootcacrl") || strings.Contains(requestURL, "IntelSGXRootCA.der") {
+		return headers, rootCACRL, nil
+	}
+
+	if strings.Contains(requestURL, "/pckcrl") {
+		if strings.Contains(requestURL, "ca=processor") {
+			headers["Sgx-Pck-Crl-Issuer-Chain"] = []string{strings.TrimSpace(string(pckCRLProcessorChain))}
+			return headers, pckCRLProcessor, nil
+		}
+		if strings.Contains(requestURL, "ca=platform") {
+			headers["Sgx-Pck-Crl-Issuer-Chain"] = []string{strings.TrimSpace(string(pckCRLPlatformChain))}
+			return headers, pckCRLPlatform, nil
+		}
+	}
+
+	if strings.Contains(requestURL, "/tcb?fmspc=") {
+		fmspc := extractFMSPCFromURL(requestURL)
+		if cached, ok := tcbInfoCache[fmspc]; ok {
+			headers["Tcb-Info-Issuer-Chain"] = []string{strings.TrimSpace(string(cached.chain))}
+			return headers, cached.body, nil
+		}
+		return nil, nil, fmt.Errorf("TCB info for FMSPC %s not found in embedded collateral", fmspc)
+	}
+
+	return nil, nil, fmt.Errorf("unsupported PCS URL: %s", requestURL)
+}
+
+func extractFMSPCFromURL(url string) string {
+	idx := strings.Index(url, "fmspc=")
+	if idx == -1 {
+		return ""
+	}
+	fmspc := url[idx+6:]
+	if ampIdx := strings.Index(fmspc, "&"); ampIdx != -1 {
+		fmspc = fmspc[:ampIdx]
+	}
+	return fmspc
 }
 
 func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte, error) {
@@ -58,6 +148,8 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 	opts := verify.DefaultOptions()
 	opts.Getter = tdxGetter{}
 	opts.TrustedRoots = intelRootCertPool
+	opts.GetCollateral = true
+	opts.CheckRevocations = true
 
 	parsedReport, err := abi.QuoteToProto(attDocBytes)
 	if err != nil {
@@ -104,9 +196,9 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 
 	valOpts := &validate.Options{
 		HeaderOptions: validate.HeaderOptions{
-			MinimumQeSvn:  0,
-			MinimumPceSvn: 0,
-			QeVendorID:    nil, // Not used
+			MinimumQeSvn:  MinimumQeSvn,
+			MinimumPceSvn: MinimumPceSvn,
+			QeVendorID:    IntelQeVendorID,
 		},
 		TdQuoteBodyOptions: validate.TdQuoteBodyOptions{
 			MinimumTeeTcbSvn: expectedMinimumTeeTcbSvn,
