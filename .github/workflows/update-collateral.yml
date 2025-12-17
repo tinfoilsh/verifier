@@ -34,7 +34,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         id: tcb
         run: |
-          TCB_NUM=$(grep -o '"tcbEvaluationDataNumber":[0-9]*' attestation/collateral/qe_identity.json | head -1 | grep -o '[0-9]*')
+          TCB_NUM=$(jq -e '.enclaveIdentity.tcbEvaluationDataNumber' attestation/collateral/qe_identity.json)
           echo "tcb_num=$TCB_NUM" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
