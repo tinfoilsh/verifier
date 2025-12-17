@@ -58,11 +58,16 @@ var tcbInfoCache = map[string]struct {
 
 const (
 	// MinimumQeSvn is the minimum Quote Enclave security version.
-	// Based on current Intel QE Identity tcbLevels with "UpToDate" status.
-	MinimumQeSvn = 4
+	// Intel's current "UpToDate" level is 4, but TDX infrastructure
+	// has not yet been updated. Set to 0 until TDX platforms are updated.
+	// TODO: Increase to 4 once all TDX platforms are updated.
+	MinimumQeSvn = 0
 
 	// MinimumPceSvn is the minimum Platform Certification Enclave security version.
-	MinimumPceSvn = 13
+	// Intel's current "UpToDate" level is 13, but TDX infrastructure
+	// has not yet been updated. Set to 0 until TDX platforms are updated.
+	// TODO: Increase to 13 once all TDX platforms are updated.
+	MinimumPceSvn = 0
 )
 
 // IntelQeVendorID is Intel's QE Vendor ID (939a7233-f79c-4ca9-940a-0db3957f0607)
