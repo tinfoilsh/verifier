@@ -58,15 +58,12 @@ var fmspcPattern = regexp.MustCompile(`^collateral/tcb_info_([a-f0-9]+)\.json$`)
 
 const (
 	// MinimumQeSvn is the minimum Quote Enclave security version.
-	// Intel's current "UpToDate" level is 4, but TDX infrastructure
-	// has not yet been updated. Set to 0 until TDX platforms are updated.
-	// TODO: Increase to 4 once all TDX platforms are updated.
+	// Intel's current "UpToDate" is 8, but their Ubuntu Noble libsgx-ae-tdqe
+	// package ships an enclave with SVN 0. Set to 8 once packages are fixed.
 	MinimumQeSvn = 0
 
 	// MinimumPceSvn is the minimum Platform Certification Enclave security version.
-	// Intel's current "UpToDate" level is 13, but TDX infrastructure
-	// has not yet been updated. Set to 0 until TDX platforms are updated.
-	// TODO: Increase to 13 once all TDX platforms are updated.
+	// Intel's current "UpToDate" level is 13, same Noble packaging issue as above.
 	MinimumPceSvn = 0
 
 	// MinimumTcbEvaluationDataNumber is the minimum TCB evaluation data number
