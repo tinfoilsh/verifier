@@ -98,22 +98,22 @@ sequenceDiagram
 
 ### JavaScript / TypeScript SDK
 
-For production JavaScript/TypeScript applications, use the [tinfoil-node](https://github.com/tinfoilsh/tinfoil-node) package, which provides:
+For production JavaScript/TypeScript applications, use the [tinfoil-js](https://github.com/tinfoilsh/tinfoil-js) package, which provides:
 - OpenAI-compatible API with built-in verification
-- WASM-based verifier integration (uses this repo's WASM build)
+- Native JavaScript verification implementation
 - EHBP (Encrypted HTTP Body Protocol) for end-to-end encryption
 - Support for browsers, Node.js 20+, Deno, Bun, and Cloudflare Workers
 - Comprehensive verification reporting with step-by-step diagnostics
 
 ```bash
-npm install @tinfoilsh/tinfoil-node
+npm install tinfoil
 ```
 
-See the [tinfoil-node documentation](https://github.com/tinfoilsh/tinfoil-node) for usage examples.
+See the [tinfoil-js documentation](https://github.com/tinfoilsh/tinfoil-js) for usage examples.
 
 ### Direct WASM Usage
 
-For advanced custom integrations, you can use the WASM verifier directly. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers without requiring server-side verification.
+For custom integrations requiring the Go verification logic in browsers, you can use the WASM verifier directly. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers.
 
 When new versions are tagged, our GitHub Actions workflow automatically:
 1. Compiles the Go verification logic to WebAssembly
