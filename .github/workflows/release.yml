@@ -35,14 +35,14 @@ jobs:
 
       - name: Build WASM
         run: |
-          go mod download
           go run ./rootfetch/main.go -o client/trusted_root.json
           cp client/trusted_root.json wasm/
           VERSION=${GITHUB_REF#refs/tags/}
-          cd wasm && GOOS=js GOARCH=wasm go build \
+          GOOS=js GOARCH=wasm go build \
             -trimpath \
             -ldflags="-buildid= -X main.version=${VERSION}" \
-            -o tinfoil-verifier-${VERSION}.wasm
+            -o wasm/tinfoil-verifier-${VERSION}.wasm \
+            ./wasm
 
       - name: Copy WASM to public folder
         run: |
