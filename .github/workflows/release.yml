@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    # tags:
+    #   - "v*"
 
 permissions:
   contents: write
@@ -55,14 +55,14 @@ jobs:
           gomobile bind -target=ios,iossimulator,macos -o TinfoilVerifier.xcframework $(go list ./... | grep -v -E "/examples/|/rootfetch|/wasm" | xargs)
           zip -ry TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
-      - name: Deploy to GH pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: public
+      # - name: Deploy to GH pages
+      #   uses: JamesIves/github-pages-deploy-action@v4
+      #   with:
+      #     folder: public
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            TinfoilVerifier.xcframework.zip
-            wasm/tinfoil-verifier-*.wasm
+      # - name: Release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     files: |
+      #       TinfoilVerifier.xcframework.zip
+      #       wasm/tinfoil-verifier-*.wasm
