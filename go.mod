@@ -5,7 +5,7 @@ go 1.25.1
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/charmbracelet/log v0.4.2
-	github.com/google/go-sev-guest v0.8.0
+	github.com/google/go-sev-guest v0.14.1
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/sigstore/protobuf-specs v0.5.0
 	github.com/sigstore/sigstore-go v1.1.3
@@ -158,8 +158,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 )
-
-replace github.com/google/go-sev-guest => github.com/tinfoilsh/go-sev-guest v0.0.0-20250704193550-c725e6216008
 
 replace github.com/in-toto/in-toto-golang => github.com/tinfoilsh/in-toto-golang v0.0.0-20251028050300-aa5edaf95dd8
 
