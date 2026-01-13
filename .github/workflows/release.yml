@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -26,7 +29,11 @@ jobs:
         run: |
           go run ./rootfetch/main.go -o client/trusted_root.json
           cp client/trusted_root.json wasm/
-          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION="dev-${GITHUB_SHA::8}"
+          fi
           GOOS=js GOARCH=wasm go build \
             -trimpath \
             -ldflags="-buildid= -X main.version=${VERSION}" \
@@ -56,11 +63,13 @@ jobs:
           zip -ry TinfoilVerifier.xcframework.zip TinfoilVerifier.xcframework
 
       - name: Deploy to GH pages
+        if: github.event_name != 'pull_request'
         uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4.8.0
         with:
           folder: public
 
       - name: Release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b #v2.5.0
         with:
           files: |
