@@ -35,6 +35,7 @@ jobs:
 
       - name: Build WASM
         run: |
+          go mod download
           go run ./rootfetch/main.go -o client/trusted_root.json
           cp client/trusted_root.json wasm/
           VERSION=${GITHUB_REF#refs/tags/}
