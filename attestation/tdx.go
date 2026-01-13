@@ -56,22 +56,11 @@ var tcbInfoCache map[string]struct {
 
 var fmspcPattern = regexp.MustCompile(`^collateral/tcb_info_([a-f0-9]+)\.json$`)
 
-const (
-	// MinimumQeSvn is the minimum Quote Enclave security version.
-	// Intel's current "UpToDate" is 8, but their Ubuntu Noble libsgx-ae-tdqe
-	// package ships an enclave with SVN 0. Set to 8 once packages are fixed.
-	MinimumQeSvn = 0
-
-	// MinimumPceSvn is the minimum Platform Certification Enclave security version.
-	// Intel's current "UpToDate" level is 13, same Noble packaging issue as above.
-	MinimumPceSvn = 0
-
-	// MinimumTcbEvaluationDataNumber is the minimum TCB evaluation data number
-	// required for embedded collateral. This ensures outdated collateral cannot
-	// be accidentally embedded. The build will fail if collateral is older than
-	// this value. See Intel's TCB Recovery best practices.
-	MinimumTcbEvaluationDataNumber = 18
-)
+// MinimumTcbEvaluationDataNumber is the minimum TCB evaluation data number
+// required for embedded collateral. This ensures outdated collateral cannot
+// be accidentally embedded. The build will fail if collateral is older than
+// this value. See Intel's TCB Recovery best practices.
+const MinimumTcbEvaluationDataNumber = 18
 
 // IntelQeVendorID is Intel's QE Vendor ID (939a7233-f79c-4ca9-940a-0db3957f0607)
 var IntelQeVendorID = []byte{
@@ -278,9 +267,7 @@ func verifyTdxReport(attestationDoc string, isCompressed bool) ([]string, []byte
 
 	valOpts := &validate.Options{
 		HeaderOptions: validate.HeaderOptions{
-			MinimumQeSvn:  MinimumQeSvn,
-			MinimumPceSvn: MinimumPceSvn,
-			QeVendorID:    IntelQeVendorID,
+			QeVendorID: IntelQeVendorID,
 		},
 		TdQuoteBodyOptions: validate.TdQuoteBodyOptions{
 			MinimumTeeTcbSvn: expectedMinimumTeeTcbSvn,
