@@ -19,6 +19,7 @@ var embeddedTrustedRoot []byte
 
 // GroundTruth represents the "known good" verified of the enclave
 type GroundTruth struct {
+	EnclaveHost         string                           `json:"enclave_host,omitempty"`
 	TLSPublicKey        string                           `json:"tls_public_key,omitempty"`
 	HPKEPublicKey       string                           `json:"hpke_public_key,omitempty"`
 	Digest              string                           `json:"digest"`
@@ -212,6 +213,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	}
 
 	s.groundTruth = &GroundTruth{
+		EnclaveHost:         s.enclave,
 		TLSPublicKey:        enclaveVerification.TLSPublicKeyFP,
 		HPKEPublicKey:       enclaveVerification.HPKEPublicKey,
 		Digest:              digest,
@@ -276,6 +278,7 @@ func (s *SecureClient) VerifyFromBundle(bundle *attestation.Bundle) (*GroundTrut
 
 	s.enclave = bundle.Domain
 	s.groundTruth = &GroundTruth{
+		EnclaveHost:        bundle.Domain,
 		TLSPublicKey:       enclaveVerification.TLSPublicKeyFP,
 		HPKEPublicKey:      enclaveVerification.HPKEPublicKey,
 		Digest:             bundle.Digest,
