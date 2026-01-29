@@ -84,3 +84,41 @@ func TestClientDefaultClient(t *testing.T) {
 	_, err := defaultClient.Verify()
 	assert.NoError(t, err)
 }
+
+func TestVerifyFromBundle(t *testing.T) {
+	bundle, err := attestation.FetchBundle()
+	assert.NoError(t, err)
+	assert.NotNil(t, bundle)
+	assert.NotEmpty(t, bundle.Domain)
+	assert.NotEmpty(t, bundle.Digest)
+	assert.NotNil(t, bundle.EnclaveAttestationReport)
+	assert.NotEmpty(t, bundle.VCEK)
+	assert.NotEmpty(t, bundle.SigstoreBundle)
+
+	client := NewSecureClient(bundle.Domain, defaultRouterRepo)
+	groundTruth, err := client.VerifyFromBundle(bundle)
+	assert.NoError(t, err)
+	assert.NotNil(t, groundTruth)
+	assert.NotEmpty(t, groundTruth.TLSPublicKey)
+	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
+	assert.Equal(t, bundle.Digest, groundTruth.Digest)
+}
+
+func TestVerifyFromBundleJSON(t *testing.T) {
+	bundle, err := attestation.FetchBundle()
+	assert.NoError(t, err)
+
+	bundleJSON, err := json.Marshal(bundle)
+	assert.NoError(t, err)
+
+	groundTruthJSON, err := VerifyFromBundleJSON(bundleJSON, defaultRouterRepo, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruthJSON)
+
+	var groundTruth GroundTruth
+	err = json.Unmarshal([]byte(groundTruthJSON), &groundTruth)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruth.TLSPublicKey)
+	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
+	assert.Equal(t, bundle.Digest, groundTruth.Digest)
+}
