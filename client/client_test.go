@@ -131,6 +131,8 @@ func TestVerifyFromATCJSON(t *testing.T) {
 	var groundTruth GroundTruth
 	err = json.Unmarshal([]byte(groundTruthJSON), &groundTruth)
 	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruth.EnclaveHost)
+	assert.True(t, strings.HasSuffix(groundTruth.EnclaveHost, ".tinfoil.sh"))
 	assert.NotEmpty(t, groundTruth.TLSPublicKey)
 	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
 	assert.NotEmpty(t, groundTruth.Digest)
