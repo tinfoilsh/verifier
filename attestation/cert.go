@@ -105,8 +105,9 @@ func domainMatchesSANs(sans []string, expectedDomain string) bool {
 		if san == expectedDomain {
 			return true
 		}
-		// Wildcard match (*.example.com matches sub.example.com)
-		if strings.HasPrefix(san, "*.") && san[2:] == parentDomain {
+		// Wildcard match (*.example.com matches sub.example.com, but NOT example.com)
+		// Per RFC 6125, wildcards only match a single label, not the apex domain
+		if strings.HasPrefix(san, "*.") && san[2:] == parentDomain && expectedDomain != parentDomain {
 			return true
 		}
 	}
