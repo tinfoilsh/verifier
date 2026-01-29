@@ -125,7 +125,7 @@ func verifySevReport(attestationDoc string, isCompressed bool, vcekDER []byte) (
 		MinimumVersion:            uint16((1 << 8) | 55), // 1.55
 		MinimumTCB:                mintcb,
 		MinimumLaunchTCB:          mintcb,
-		PermitProvisionalFirmware: true,
+		PermitProvisionalFirmware: false,
 		PlatformInfo: &abi.SnpPlatformInfo{
 			SMTEnabled:                  true,
 			TSMEEnabled:                 true,
