@@ -108,6 +108,20 @@ func TestGuestVerify(t *testing.T) {
 	}
 }
 
+func TestFetchBundle(t *testing.T) {
+	bundle, err := FetchBundle()
+	require.NoError(t, err)
+	require.NotNil(t, bundle)
+
+	assert.NotEmpty(t, bundle.Domain)
+	assert.NotEmpty(t, bundle.Digest)
+	assert.NotNil(t, bundle.EnclaveAttestationReport)
+	assert.NotEmpty(t, bundle.EnclaveAttestationReport.Format)
+	assert.NotEmpty(t, bundle.EnclaveAttestationReport.Body)
+	assert.NotEmpty(t, bundle.VCEK)
+	assert.NotEmpty(t, bundle.SigstoreBundle)
+}
+
 func TestAttestationFingerprint(t *testing.T) {
 	routerMpMeasurement := &Measurement{
 		Type: SnpTdxMultiPlatformV1,

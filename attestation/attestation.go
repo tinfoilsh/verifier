@@ -220,6 +220,16 @@ type Document struct {
 	Body   string        `json:"body"`
 }
 
+// Bundle represents a complete attestation bundle from ATC for single-request verification
+type Bundle struct {
+	Domain                   string          `json:"domain"`
+	EnclaveAttestationReport *Document       `json:"enclaveAttestationReport"`
+	Digest                   string          `json:"digest"`
+	SigstoreBundle           json.RawMessage `json:"sigstoreBundle"`
+	VCEK                     string          `json:"vcek"`
+	EnclaveCert              string          `json:"enclaveCert"`
+}
+
 // NewDocument creates a new attestation document from a given format and body
 func NewDocument(format PredicateType, body []byte) (*Document, error) {
 	// Compress attestation body
@@ -246,9 +256,14 @@ func (d *Document) Hash() string {
 
 // Verify checks the attestation document against its trust root and returns the inner measurements
 func (d *Document) Verify() (*Verification, error) {
+	return d.VerifyWithVCEK(nil)
+}
+
+// VerifyWithVCEK checks the attestation document using an optional pre-provided VCEK certificate
+func (d *Document) VerifyWithVCEK(vcekDER []byte) (*Verification, error) {
 	switch d.Format {
 	case SevGuestV2:
-		return verifySevAttestationV2(d.Body)
+		return verifySevAttestationV2WithVCEK(d.Body, vcekDER)
 	case TdxGuestV2:
 		return verifyTdxAttestationV2(d.Body)
 	default:
@@ -309,6 +324,29 @@ func Fetch(host string) (*Document, error) {
 		return nil, err
 	}
 	return &doc, nil
+}
+
+const defaultATCBaseURL = "https://atc.tinfoil.sh"
+
+// FetchBundle retrieves a complete attestation bundle from the default ATC endpoint
+func FetchBundle() (*Bundle, error) {
+	return FetchBundleFrom(defaultATCBaseURL)
+}
+
+// FetchBundleFrom retrieves a complete attestation bundle from a custom ATC base URL
+func FetchBundleFrom(atcBaseURL string) (*Bundle, error) {
+	bundleURL := atcBaseURL + "/attestation"
+
+	resp, _, err := util.Get(bundleURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch bundle: %v", err)
+	}
+
+	var bundle Bundle
+	if err := json.Unmarshal(resp, &bundle); err != nil {
+		return nil, fmt.Errorf("failed to parse bundle: %v", err)
+	}
+	return &bundle, nil
 }
 
 // TLSPublicKey returns the TLS public key of a given host
