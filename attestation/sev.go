@@ -51,7 +51,7 @@ var (
 	_ trust.HTTPSGetter = &getter{}
 )
 
-func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, error) {
+func verifySevReport(attestationDoc string, isCompressed bool, vcekDER []byte) (*sevsnp.Report, error) {
 	attDocBytes, err := base64.StdEncoding.DecodeString(attestationDoc)
 	if err != nil {
 		return nil, err
@@ -76,9 +76,22 @@ func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, 
 		return nil, fmt.Errorf("failed to parse report: %v", err)
 	}
 
-	attestation, err := verify.GetAttestationFromReport(parsedReport, opts)
-	if err != nil {
-		return nil, fmt.Errorf("could not recreate attestation from report: %w", err)
+	var attestation *sevsnp.Attestation
+	if vcekDER != nil {
+		// Use pre-provided VCEK certificate
+		attestation = &sevsnp.Attestation{
+			Report: parsedReport,
+			CertificateChain: &sevsnp.CertificateChain{
+				VcekCert: vcekDER,
+			},
+			Product: opts.Product,
+		}
+	} else {
+		// Fetch VCEK from AMD KDS
+		attestation, err = verify.GetAttestationFromReport(parsedReport, opts)
+		if err != nil {
+			return nil, fmt.Errorf("could not recreate attestation from report: %w", err)
+		}
 	}
 
 	if err := verify.SnpAttestation(attestation, opts); err != nil {
@@ -139,7 +152,11 @@ func verifySevReport(attestationDoc string, isCompressed bool) (*sevsnp.Report, 
 }
 
 func verifySevAttestationV2(attestationDoc string) (*Verification, error) {
-	report, err := verifySevReport(attestationDoc, true)
+	return verifySevAttestationV2WithVCEK(attestationDoc, nil)
+}
+
+func verifySevAttestationV2WithVCEK(attestationDoc string, vcekDER []byte) (*Verification, error) {
+	report, err := verifySevReport(attestationDoc, true, vcekDER)
 	if err != nil {
 		return nil, err
 	}
