@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -223,6 +224,69 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	return s.groundTruth, err
 }
 
+// VerifyFromBundle verifies using a pre-fetched attestation bundle from ATC (single-request verification)
+func (s *SecureClient) VerifyFromBundle(bundle *attestation.Bundle) (*GroundTruth, error) {
+	sigstoreClient, err := s.getSigstoreClient()
+	if err != nil {
+		return nil, fmt.Errorf("verifyCode: failed to create sigstore client: %v", err)
+	}
+
+	codeMeasurement, err := sigstoreClient.VerifyAttestation(bundle.SigstoreBundle, bundle.Digest, s.repo)
+	if err != nil {
+		return nil, fmt.Errorf("verifyCode: failed to verify attested measurements: %v", err)
+	}
+
+	// Decode VCEK from base64 DER format
+	vcekDER, err := base64.StdEncoding.DecodeString(bundle.VCEK)
+	if err != nil {
+		return nil, fmt.Errorf("verifyEnclave: failed to decode VCEK certificate: %v", err)
+	}
+
+	enclaveVerification, err := bundle.EnclaveAttestationReport.VerifyWithVCEK(vcekDER)
+	if err != nil {
+		return nil, fmt.Errorf("verifyEnclave: failed to verify enclave measurements: %v", err)
+	}
+
+	if err = codeMeasurement.Equals(enclaveVerification.Measurement); err != nil {
+		return nil, fmt.Errorf("measurements: %v", err)
+	}
+
+	codeFingerprint, err := attestation.Fingerprint(codeMeasurement, nil, enclaveVerification.Measurement.Type)
+	if err != nil {
+		return nil, fmt.Errorf("measurements: failed to compute code fingerprint: %v", err)
+	}
+	enclaveFingerprint, err := attestation.Fingerprint(enclaveVerification.Measurement, nil, enclaveVerification.Measurement.Type)
+	if err != nil {
+		return nil, fmt.Errorf("measurements: failed to compute enclave fingerprint: %v", err)
+	}
+
+	// Verify enclave certificate
+	if bundle.EnclaveCert == "" {
+		return nil, fmt.Errorf("verifyCertificate: enclave certificate is required")
+	}
+	_, err = attestation.VerifyCertificate(
+		bundle.EnclaveCert,
+		bundle.Domain,
+		bundle.EnclaveAttestationReport,
+		enclaveVerification.HPKEPublicKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("verifyCertificate: %v", err)
+	}
+
+	s.enclave = bundle.Domain
+	s.groundTruth = &GroundTruth{
+		TLSPublicKey:       enclaveVerification.TLSPublicKeyFP,
+		HPKEPublicKey:      enclaveVerification.HPKEPublicKey,
+		Digest:             bundle.Digest,
+		CodeMeasurement:    codeMeasurement,
+		EnclaveMeasurement: enclaveVerification.Measurement,
+		CodeFingerprint:    codeFingerprint,
+		EnclaveFingerprint: enclaveFingerprint,
+	}
+	return s.groundTruth, nil
+}
+
 // HTTPClient returns an HTTP client that only accepts TLS connections to the verified enclave
 func (s *SecureClient) HTTPClient() (*http.Client, error) {
 	if s.groundTruth == nil {
@@ -307,6 +371,44 @@ func VerifyJSON(enclave, repo string, sigstoreTrustedRootJSON []byte) (string, e
 		sigstoreClient: sigstoreClient,
 	}
 	_, err = client.Verify()
+	if err != nil {
+		return "", err
+	}
+	return client.GroundTruthJSON()
+}
+
+// VerifyFromBundleJSON verifies using a pre-fetched attestation bundle and returns the verification data as a JSON string
+func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	var bundle attestation.Bundle
+	if err := json.Unmarshal(bundleJSON, &bundle); err != nil {
+		return "", fmt.Errorf("failed to parse bundle: %v", err)
+	}
+
+	var trustedRootJSON []byte
+	var err error
+
+	if len(sigstoreTrustedRootJSON) > 0 {
+		trustedRootJSON = sigstoreTrustedRootJSON
+	} else if len(embeddedTrustedRoot) > 0 {
+		trustedRootJSON = embeddedTrustedRoot
+	} else {
+		trustedRootJSON, err = sigstore.FetchTrustRoot()
+		if err != nil {
+			return "", fmt.Errorf("failed to fetch trusted root: %v", err)
+		}
+	}
+
+	sigstoreClient, err := sigstore.NewClientFromJSON(trustedRootJSON)
+	if err != nil {
+		return "", fmt.Errorf("failed to create sigstore client: %v", err)
+	}
+
+	client := &SecureClient{
+		enclave:        bundle.Domain,
+		repo:           repo,
+		sigstoreClient: sigstoreClient,
+	}
+	_, err = client.VerifyFromBundle(&bundle)
 	if err != nil {
 		return "", err
 	}
