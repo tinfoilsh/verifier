@@ -122,3 +122,35 @@ func TestVerifyFromBundleJSON(t *testing.T) {
 	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
 	assert.Equal(t, bundle.Digest, groundTruth.Digest)
 }
+
+func TestVerifyFromATCJSON(t *testing.T) {
+	groundTruthJSON, err := VerifyFromATCJSON(defaultRouterRepo, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruthJSON)
+
+	var groundTruth GroundTruth
+	err = json.Unmarshal([]byte(groundTruthJSON), &groundTruth)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruth.TLSPublicKey)
+	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
+	assert.NotEmpty(t, groundTruth.Digest)
+}
+
+func TestVerifyFromATCURLJSON(t *testing.T) {
+	// Test with default URL (empty string)
+	groundTruthJSON, err := VerifyFromATCURLJSON("", defaultRouterRepo, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruthJSON)
+
+	// Test with explicit URL
+	groundTruthJSON, err = VerifyFromATCURLJSON("https://atc.tinfoil.sh", defaultRouterRepo, nil)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruthJSON)
+
+	var groundTruth GroundTruth
+	err = json.Unmarshal([]byte(groundTruthJSON), &groundTruth)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, groundTruth.TLSPublicKey)
+	assert.NotEmpty(t, groundTruth.HPKEPublicKey)
+	assert.NotEmpty(t, groundTruth.Digest)
+}

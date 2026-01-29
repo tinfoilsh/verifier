@@ -346,21 +346,7 @@ func (s *SecureClient) Get(url string, headers map[string]string) (*Response, er
 
 // VerifyJSON verifies an enclave against a repo and returns the verification data as a JSON string
 func VerifyJSON(enclave, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
-	var trustedRootJSON []byte
-	var err error
-
-	if len(sigstoreTrustedRootJSON) > 0 {
-		trustedRootJSON = sigstoreTrustedRootJSON
-	} else if len(embeddedTrustedRoot) > 0 {
-		trustedRootJSON = embeddedTrustedRoot
-	} else {
-		trustedRootJSON, err = sigstore.FetchTrustRoot()
-		if err != nil {
-			return "", fmt.Errorf("failed to fetch trusted root: %v", err)
-		}
-	}
-
-	sigstoreClient, err := sigstore.NewClientFromJSON(trustedRootJSON)
+	sigstoreClient, err := getSigstoreClient(sigstoreTrustedRootJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to create sigstore client: %v", err)
 	}
@@ -377,13 +363,7 @@ func VerifyJSON(enclave, repo string, sigstoreTrustedRootJSON []byte) (string, e
 	return client.GroundTruthJSON()
 }
 
-// VerifyFromBundleJSON verifies using a pre-fetched attestation bundle and returns the verification data as a JSON string
-func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
-	var bundle attestation.Bundle
-	if err := json.Unmarshal(bundleJSON, &bundle); err != nil {
-		return "", fmt.Errorf("failed to parse bundle: %v", err)
-	}
-
+func getSigstoreClient(sigstoreTrustedRootJSON []byte) (*sigstore.Client, error) {
 	var trustedRootJSON []byte
 	var err error
 
@@ -394,11 +374,15 @@ func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSO
 	} else {
 		trustedRootJSON, err = sigstore.FetchTrustRoot()
 		if err != nil {
-			return "", fmt.Errorf("failed to fetch trusted root: %v", err)
+			return nil, fmt.Errorf("failed to fetch trusted root: %v", err)
 		}
 	}
 
-	sigstoreClient, err := sigstore.NewClientFromJSON(trustedRootJSON)
+	return sigstore.NewClientFromJSON(trustedRootJSON)
+}
+
+func verifyBundle(bundle *attestation.Bundle, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	sigstoreClient, err := getSigstoreClient(sigstoreTrustedRootJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to create sigstore client: %v", err)
 	}
@@ -408,9 +392,43 @@ func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSO
 		repo:           repo,
 		sigstoreClient: sigstoreClient,
 	}
-	_, err = client.VerifyFromBundle(&bundle)
+	_, err = client.VerifyFromBundle(bundle)
 	if err != nil {
 		return "", err
 	}
 	return client.GroundTruthJSON()
+}
+
+// VerifyFromBundleJSON verifies using a pre-fetched attestation bundle and returns the verification data as a JSON string
+func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	var bundle attestation.Bundle
+	if err := json.Unmarshal(bundleJSON, &bundle); err != nil {
+		return "", fmt.Errorf("failed to parse bundle: %v", err)
+	}
+	return verifyBundle(&bundle, repo, sigstoreTrustedRootJSON)
+}
+
+// VerifyFromATCJSON fetches an attestation bundle from the default ATC endpoint and verifies it.
+// Returns the verification data as a JSON string.
+func VerifyFromATCJSON(repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	return VerifyFromATCURLJSON("", repo, sigstoreTrustedRootJSON)
+}
+
+// VerifyFromATCURLJSON fetches an attestation bundle from a custom ATC URL and verifies it.
+// If atcBaseURL is empty, defaults to https://atc.tinfoil.sh.
+// Returns the verification data as a JSON string.
+func VerifyFromATCURLJSON(atcBaseURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	var bundle *attestation.Bundle
+	var err error
+
+	if atcBaseURL == "" {
+		bundle, err = attestation.FetchBundle()
+	} else {
+		bundle, err = attestation.FetchBundleFrom(atcBaseURL)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch bundle: %v", err)
+	}
+
+	return verifyBundle(bundle, repo, sigstoreTrustedRootJSON)
 }
