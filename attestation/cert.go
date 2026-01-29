@@ -41,7 +41,7 @@ func VerifyCertificate(certPEM string, expectedDomain string, attestationDoc *Do
 	}
 
 	// 3. Verify domain
-	if !domainMatchesSANs(sans, expectedDomain) {
+	if err := cert.VerifyHostname(expectedDomain); err != nil {
 		return nil, fmt.Errorf("certificate not valid for domain: %s. SANs: %v", expectedDomain, sans)
 	}
 
@@ -85,34 +85,6 @@ func VerifyCertificate(certPEM string, expectedDomain string, attestationDoc *Do
 		AttestationHash: computedHash,
 		DNSNames:        sans,
 	}, nil
-}
-
-// getParentDomain returns the parent domain (e.g., "sub.example.com" -> "example.com")
-func getParentDomain(domain string) string {
-	parts := strings.Split(domain, ".")
-	if len(parts) <= 2 {
-		return domain
-	}
-	return strings.Join(parts[1:], ".")
-}
-
-// domainMatchesSANs checks if a domain matches any of the SANs (including wildcards)
-func domainMatchesSANs(sans []string, expectedDomain string) bool {
-	parentDomain := getParentDomain(expectedDomain)
-
-	for _, san := range sans {
-		// Exact match
-		if san == expectedDomain {
-			return true
-		}
-		// Wildcard match (*.example.com matches sub.example.com, but NOT example.com)
-		// Per RFC 6125, wildcards only match a single label, not the apex domain
-		if strings.HasPrefix(san, "*.") && san[2:] == parentDomain && expectedDomain != parentDomain {
-			return true
-		}
-	}
-
-	return false
 }
 
 // filterSANs returns SANs containing the given substring
