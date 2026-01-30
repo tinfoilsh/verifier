@@ -326,16 +326,16 @@ func Fetch(host string) (*Document, error) {
 	return &doc, nil
 }
 
-const defaultATCBaseURL = "https://atc.tinfoil.sh"
+const defaultAttestationBundleURL = "https://atc.tinfoil.sh"
 
-// FetchBundle retrieves a complete attestation bundle from the default ATC endpoint
+// FetchBundle retrieves a complete attestation bundle from the default endpoint
 func FetchBundle() (*Bundle, error) {
-	return FetchBundleFrom(defaultATCBaseURL)
+	return FetchBundleFrom(defaultAttestationBundleURL)
 }
 
-// FetchBundleFrom retrieves a complete attestation bundle from a custom ATC base URL
-func FetchBundleFrom(atcBaseURL string) (*Bundle, error) {
-	bundleURL := atcBaseURL + "/attestation"
+// FetchBundleFrom retrieves a complete attestation bundle from a custom base URL
+func FetchBundleFrom(attestationBundleURL string) (*Bundle, error) {
+	bundleURL := attestationBundleURL + "/attestation"
 
 	resp, _, err := util.Get(bundleURL)
 	if err != nil {
