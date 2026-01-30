@@ -137,6 +137,8 @@ See the [tinfoil-js documentation](https://github.com/tinfoilsh/tinfoil-js) for 
 
 ### Direct WASM Usage
 
+> **Recommended:** For browser verification, use [tinfoil-js](https://github.com/tinfoilsh/tinfoil-js) instead. See the [JavaScript SDK documentation](https://docs.tinfoil.sh/sdk/javascript-sdk) for details.
+
 For custom integrations requiring the Go verification logic in browsers, you can use the WASM verifier directly. Built from the same Go source code, it's compiled to WebAssembly to run natively in browsers.
 
 When new versions are tagged, our GitHub Actions workflow automatically:
