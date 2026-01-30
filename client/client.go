@@ -14,6 +14,11 @@ import (
 	"github.com/tinfoilsh/verifier/util"
 )
 
+const (
+	pinnedNoRepo   = "pinned_no_repo"
+	pinnedNoDigest = "pinned_no_digest"
+)
+
 //go:embed trusted_root.json
 var embeddedTrustedRoot []byte
 
@@ -73,7 +78,7 @@ func NewSecureClient(enclave, repo string) *SecureClient {
 func NewPinnedSecureClient(enclave string, codeMeasurement *attestation.Measurement, hardwareMeasurements []*attestation.HardwareMeasurement) *SecureClient {
 	return &SecureClient{
 		enclave:              enclave,
-		repo:                 "pinned_no_repo",
+		repo:                 pinnedNoRepo,
 		codeMeasurement:      codeMeasurement,
 		hardwareMeasurements: hardwareMeasurements,
 	}
@@ -141,7 +146,7 @@ func (s *SecureClient) getSigstoreClient() (*sigstore.Client, error) {
 // Verify fetches the latest verification information from GitHub and Sigstore and stores the ground truth results in the client
 func (s *SecureClient) Verify() (*GroundTruth, error) {
 	var codeMeasurement = s.codeMeasurement
-	var digest = "pinned_no_digest"
+	var digest = pinnedNoDigest
 	if s.codeMeasurement == nil {
 		var err error
 		digest, err = github.FetchLatestDigest(s.repo)
