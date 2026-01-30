@@ -21,11 +21,6 @@ Tinfoil Verifier is a Go library that verifies the integrity of remote enclaves 
 go get github.com/tinfoilsh/verifier@latest
 ```
 
-> **Note**  Until `go-sev-guest` upstreams a required feature, add the temporary replace directive:
-> ```bash
-> go mod edit -replace github.com/google/go-sev-guest=github.com/tinfoilsh/go-sev-guest@v0.0.0-20250704193550-c725e6216008
-> ```
-
 ## Quick Start
 ```go
 import "github.com/tinfoilsh/verifier/client"
