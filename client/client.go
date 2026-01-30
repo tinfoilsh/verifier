@@ -223,7 +223,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 		CodeFingerprint:     codeFingerprint,
 		EnclaveFingerprint:  enclaveFingerprint,
 	}
-	return s.groundTruth, err
+	return s.groundTruth, nil
 }
 
 // VerifyFromBundle verifies using a pre-fetched attestation bundle from ATC (single-request verification)
