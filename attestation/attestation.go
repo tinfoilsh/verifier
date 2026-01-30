@@ -220,7 +220,7 @@ type Document struct {
 	Body   string        `json:"body"`
 }
 
-// Bundle represents a complete attestation bundle from ATC for single-request verification
+// Bundle represents a complete attestation bundle for single-request verification
 type Bundle struct {
 	Domain                   string          `json:"domain"`
 	EnclaveAttestationReport *Document       `json:"enclaveAttestationReport"`

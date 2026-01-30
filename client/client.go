@@ -231,7 +231,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 	return s.groundTruth, nil
 }
 
-// VerifyFromBundle verifies using a pre-fetched attestation bundle from ATC (single-request verification)
+// VerifyFromBundle verifies using a pre-fetched attestation bundle (single-request verification)
 func (s *SecureClient) VerifyFromBundle(bundle *attestation.Bundle) (*GroundTruth, error) {
 	sigstoreClient, err := s.getSigstoreClient()
 	if err != nil {
@@ -416,14 +416,14 @@ func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSO
 	return verifyBundle(&bundle, repo, sigstoreTrustedRootJSON)
 }
 
-// VerifyFromATCJSON fetches an attestation bundle from the default ATC endpoint and verifies it.
+// VerifyFromATCJSON fetches an attestation bundle from the default endpoint and verifies it.
 // Returns the verification data as a JSON string.
 func VerifyFromATCJSON(repo string, sigstoreTrustedRootJSON []byte) (string, error) {
 	return VerifyFromATCURLJSON("", repo, sigstoreTrustedRootJSON)
 }
 
 // VerifyFromATCURLJSON fetches an attestation bundle from a custom URL and verifies it.
-// If attestationBundleURL is empty, defaults to https://atc.tinfoil.sh.
+// If attestationBundleURL is empty, defaults to the Tinfoil attestation service.
 // Returns the verification data as a JSON string.
 func VerifyFromATCURLJSON(attestationBundleURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
 	var bundle *attestation.Bundle
