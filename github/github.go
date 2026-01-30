@@ -69,5 +69,9 @@ func FetchAttestationBundle(repo, digest string) ([]byte, error) {
 		return nil, err
 	}
 
+	if len(responseJSON.Attestations) == 0 {
+		return nil, fmt.Errorf("no attestations found for digest %s", digest)
+	}
+
 	return responseJSON.Attestations[0].Bundle, nil
 }
