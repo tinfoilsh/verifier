@@ -59,7 +59,7 @@ func verifyCode() js.Func {
 					return
 				}
 
-				measurement, err := sigstore.VerifyAttestation(trustedRootJSON, bundleJSON, digest, repo)
+				measurement, err := sigstore.VerifyAttestation(trustedRootJSON, bundleJSON, repo, digest)
 				if err != nil {
 					reject.Invoke(err.Error())
 					return
