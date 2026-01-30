@@ -417,17 +417,17 @@ func VerifyFromATCJSON(repo string, sigstoreTrustedRootJSON []byte) (string, err
 	return VerifyFromATCURLJSON("", repo, sigstoreTrustedRootJSON)
 }
 
-// VerifyFromATCURLJSON fetches an attestation bundle from a custom ATC URL and verifies it.
-// If atcBaseURL is empty, defaults to https://atc.tinfoil.sh.
+// VerifyFromATCURLJSON fetches an attestation bundle from a custom URL and verifies it.
+// If attestationBundleURL is empty, defaults to https://atc.tinfoil.sh.
 // Returns the verification data as a JSON string.
-func VerifyFromATCURLJSON(atcBaseURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+func VerifyFromATCURLJSON(attestationBundleURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
 	var bundle *attestation.Bundle
 	var err error
 
-	if atcBaseURL == "" {
+	if attestationBundleURL == "" {
 		bundle, err = attestation.FetchBundle()
 	} else {
-		bundle, err = attestation.FetchBundleFrom(atcBaseURL)
+		bundle, err = attestation.FetchBundleFrom(attestationBundleURL)
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch bundle: %v", err)
