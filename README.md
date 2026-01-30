@@ -38,7 +38,7 @@ resp, err := tinfoilClient.Get("/api/data", nil)
 if err != nil {
     log.Fatal(err)
 }
-log.Printf("Status: %s, Body: %s", resp.Status, resp.Body)
+log.Printf("Status: %s, Body: %s", resp.Status, string(resp.Body))
 ```
 
 To verify manually and expose the verification state:
@@ -93,6 +93,30 @@ sequenceDiagram
     Client->>Client: Compare measurements & pin cert
 ```
 
+> **Note:** The [Bundled Verification](#bundled-verification) flow aggregates all these steps into a single request via Tinfoil ATC.
+
+### Bundled Verification
+
+You can fetch a pre-aggregated bundle from Tinfoil ATC (air-traffic-control) that contains all verification data in a single request:
+
+> **Note:** Bundled verification currently supports AMD SEV-SNP only. Intel TDX support is coming soon.
+
+```go
+// Single-request verification via ATC
+groundTruthJSON, err := client.VerifyFromATCJSON("org/repo", nil)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Or via your own bundle proxy URL
+groundTruthJSON, err := client.VerifyFromATCURLJSON("https://proxy.example.com", "org/repo", nil)
+```
+
+If you've already fetched the bundle yourself:
+```go
+groundTruthJSON, err := client.VerifyFromBundleJSON(bundleJSON, "org/repo", nil)
+```
+
 
 ## JavaScript / TypeScript / WASM
 
@@ -121,8 +145,6 @@ When new versions are tagged, our GitHub Actions workflow automatically:
 3. Deploys them to GitHub Pages for secure, cached distribution
 4. Updates version tags so clients always load the correct module
 
-
-### Quick Start
 
 The WASM verifier is hosted at:
 ```
@@ -158,39 +180,6 @@ WebAssembly.instantiateStreaming(
 </script>
 ```
 
-### Complete Verification (Recommended)
-
-Use the `verify()` function for complete end-to-end verification that performs all steps atomically:
-
-```javascript
-// Complete end-to-end verification
-const groundTruthJSON = await verify("inference.example.com", "tinfoilsh/confidential-llama-qwen");
-const groundTruth = JSON.parse(groundTruthJSON);
-
-// The ground truth contains:
-// - tls_public_key: TLS certificate public key fingerprint (for pinning)
-// - hpke_public_key: HPKE public key (for EHBP encryption)
-// - digest: GitHub release digest
-// - code_measurement: Expected code measurement from GitHub
-// - enclave_measurement: Actual runtime measurement from enclave
-// - hardware_measurement: TDX platform measurements (if applicable)
-// - code_fingerprint: Fingerprint of code measurement
-// - enclave_fingerprint: Fingerprint of enclave measurement
-
-console.log("TLS Cert Fingerprint:", groundTruth.tls_public_key);
-console.log("HPKE Public Key:", groundTruth.hpke_public_key);
-console.log("Verification successful - measurements match!");
-```
-
-The `verify()` function automatically:
-1. Fetches the latest release digest from GitHub
-2. Verifies code provenance using Sigstore/Rekor
-3. Performs runtime attestation against the enclave
-4. Verifies hardware measurements (for TDX platforms)
-5. Compares code and runtime measurements using platform-specific logic
-
-If any step fails, an error is thrown with details about which step failed.
-
 
 ## Auditing the Verification Code 
 1. **Certificate chain** – see [`/attestation/genoa_cert_chain.pem`](attestation/genoa_cert_chain.pem)
@@ -199,7 +188,7 @@ If any step fails, an error is thrown with details about which step failed.
    - [`/attestation/tdx.go`](attestation/tdx.go) – Intel TDX attestation
 3. **Measurement comparison** – see [`Measurement.Equals()`](attestation/attestation.go#L186) in [`/attestation/attestation.go`](attestation/attestation.go)
 4. **Code provenance verification** – Sigstore/Rekor integration in [`/sigstore/sigstore.go`](sigstore/sigstore.go)
-5. **End-to-end verification flow** – [`client.Verify()`](client/client.go#L136) in [`/client/client.go`](client/client.go)
+5. **End-to-end verification flow** – [`client.Verify()`](client/client.go#L142) in [`/client/client.go`](client/client.go)
 
 ## Reporting Vulnerabilities
 
