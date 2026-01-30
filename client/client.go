@@ -423,7 +423,7 @@ func FetchAndVerifyJSON(repo string, sigstoreTrustedRootJSON []byte) (string, er
 }
 
 // FetchAndVerifyFromURLJSON fetches an attestation bundle from a custom URL and verifies it.
-// If attestationBundleURL is empty, defaults to the Tinfoil attestation service.
+// If attestationBundleURL is empty, defaults to the Tinfoil bundle endpoint.
 // Returns the verification data as a JSON string.
 func FetchAndVerifyFromURLJSON(attestationBundleURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
 	var bundle *attestation.Bundle
