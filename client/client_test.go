@@ -123,8 +123,8 @@ func TestVerifyFromBundleJSON(t *testing.T) {
 	assert.Equal(t, bundle.Digest, groundTruth.Digest)
 }
 
-func TestVerifyFromATCJSON(t *testing.T) {
-	groundTruthJSON, err := VerifyFromATCJSON(defaultRouterRepo, nil)
+func TestFetchAndVerifyJSON(t *testing.T) {
+	groundTruthJSON, err := FetchAndVerifyJSON(defaultRouterRepo, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, groundTruthJSON)
 
@@ -138,14 +138,14 @@ func TestVerifyFromATCJSON(t *testing.T) {
 	assert.NotEmpty(t, groundTruth.Digest)
 }
 
-func TestVerifyFromATCURLJSON(t *testing.T) {
+func TestFetchAndVerifyFromURLJSON(t *testing.T) {
 	// Test with default URL (empty string)
-	groundTruthJSON, err := VerifyFromATCURLJSON("", defaultRouterRepo, nil)
+	groundTruthJSON, err := FetchAndVerifyFromURLJSON("", defaultRouterRepo, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, groundTruthJSON)
 
 	// Test with explicit URL
-	groundTruthJSON, err = VerifyFromATCURLJSON("https://atc.tinfoil.sh", defaultRouterRepo, nil)
+	groundTruthJSON, err = FetchAndVerifyFromURLJSON("https://atc.tinfoil.sh", defaultRouterRepo, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, groundTruthJSON)
 
