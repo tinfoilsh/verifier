@@ -416,16 +416,16 @@ func VerifyFromBundleJSON(bundleJSON []byte, repo string, sigstoreTrustedRootJSO
 	return verifyBundle(&bundle, repo, sigstoreTrustedRootJSON)
 }
 
-// VerifyFromATCJSON fetches an attestation bundle from the default endpoint and verifies it.
+// FetchAndVerifyJSON fetches an attestation bundle from the default endpoint and verifies it.
 // Returns the verification data as a JSON string.
-func VerifyFromATCJSON(repo string, sigstoreTrustedRootJSON []byte) (string, error) {
-	return VerifyFromATCURLJSON("", repo, sigstoreTrustedRootJSON)
+func FetchAndVerifyJSON(repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+	return FetchAndVerifyFromURLJSON("", repo, sigstoreTrustedRootJSON)
 }
 
-// VerifyFromATCURLJSON fetches an attestation bundle from a custom URL and verifies it.
+// FetchAndVerifyFromURLJSON fetches an attestation bundle from a custom URL and verifies it.
 // If attestationBundleURL is empty, defaults to the Tinfoil attestation service.
 // Returns the verification data as a JSON string.
-func VerifyFromATCURLJSON(attestationBundleURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
+func FetchAndVerifyFromURLJSON(attestationBundleURL, repo string, sigstoreTrustedRootJSON []byte) (string, error) {
 	var bundle *attestation.Bundle
 	var err error
 
