@@ -159,7 +159,7 @@ func (s *SecureClient) Verify() (*GroundTruth, error) {
 			return nil, fmt.Errorf("verifyCode: failed to fetch attestation bundle: %v", err)
 		}
 
-		codeMeasurement, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, s.repo)
+		codeMeasurement, err = sigstoreClient.VerifyAttestation(sigstoreBundle, s.repo, digest)
 		if err != nil {
 			return nil, fmt.Errorf("verifyCode: failed to verify attested measurements: %v", err)
 		}
@@ -233,7 +233,7 @@ func (s *SecureClient) VerifyFromBundle(bundle *attestation.Bundle) (*GroundTrut
 		return nil, fmt.Errorf("verifyCode: failed to create sigstore client: %v", err)
 	}
 
-	codeMeasurement, err := sigstoreClient.VerifyAttestation(bundle.SigstoreBundle, bundle.Digest, s.repo)
+	codeMeasurement, err := sigstoreClient.VerifyAttestation(bundle.SigstoreBundle, s.repo, bundle.Digest)
 	if err != nil {
 		return nil, fmt.Errorf("verifyCode: failed to verify attested measurements: %v", err)
 	}

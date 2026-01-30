@@ -62,7 +62,7 @@ func main() {
 			}
 
 			log.Info("Verifying source attestation")
-			codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, digest, *repo)
+			codeMeasurements, err = sigstoreClient.VerifyAttestation(sigstoreBundle, *repo, digest)
 			if err != nil {
 				log.Fatalf("failed to verify attested measurements: %v", err)
 			}

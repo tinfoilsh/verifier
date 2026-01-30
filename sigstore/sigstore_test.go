@@ -39,7 +39,7 @@ func TestVerifyAttestation(t *testing.T) {
 	bundle, err := github.FetchAttestationBundle(repo, hexDigest)
 	assert.NoError(t, err)
 
-	measurement, err := client.VerifyAttestation(bundle, hexDigest, repo)
+	measurement, err := client.VerifyAttestation(bundle, repo, hexDigest)
 	assert.NoError(t, err)
 	assert.Equal(t, measurement.Type, attestation.SnpTdxMultiPlatformV1)
 	assert.Equal(t, measurement.Registers, []string{

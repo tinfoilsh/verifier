@@ -113,7 +113,7 @@ func (c *Client) VerifyBundle(bundleJSON []byte, repo, hexDigest string) (*verif
 
 func (c *Client) VerifyAttestation(
 	bundleJSON []byte,
-	hexDigest, repo string,
+	repo, hexDigest string,
 ) (*attestation.Measurement, error) {
 	result, err := c.VerifyBundle(bundleJSON, repo, hexDigest)
 	if err != nil {
@@ -223,14 +223,14 @@ func (c *Client) FetchHardwareMeasurements(repo, digest string) ([]*attestation.
 // Deprecated: Use client.VerifyAttestation instead.
 func VerifyAttestation(
 	trustRootJSON, bundleJSON []byte,
-	hexDigest, repo string,
+	repo, hexDigest string,
 ) (*attestation.Measurement, error) {
 	trustRoot, err := root.NewTrustedRootFromJSON(trustRootJSON)
 	if err != nil {
 		return nil, fmt.Errorf("parsing trust root: %w", err)
 	}
 	client := &Client{trustRoot: trustRoot}
-	return client.VerifyAttestation(bundleJSON, hexDigest, repo)
+	return client.VerifyAttestation(bundleJSON, repo, hexDigest)
 }
 
 // LatestHardwareMeasurements fetches the latest hardware measurements from GitHub+Sigstore
